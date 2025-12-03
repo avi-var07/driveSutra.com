@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -64,3 +65,43 @@ export default function Navbar() {
   );
 }
 
+=======
+// frontend/src/components/common/Navbar.jsx
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Leaf, LogOut } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+
+const Navbar = () => {
+  const { user, logout } = useAuth();
+  const location = useLocation();
+
+  return (
+    <nav className="bg-gradient-to-r from-green-700 to-emerald-800 text-white shadow-xl">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <Link to="/dashboard" className="flex items-center gap-3 hover:opacity-90 transition">
+            <Leaf className="w-8 h-8" />
+            <span className="text-2xl font-bold">DriveSutraGo</span>
+          </Link>
+
+          <div className="flex items-center gap-6">
+            <span className="hidden sm:block text-sm">
+              Welcome, <strong>{user?.name || user?.email}</strong>
+            </span>
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+export default Navbar;
+>>>>>>> Stashed changes
