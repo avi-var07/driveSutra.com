@@ -1,29 +1,109 @@
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { PiTreePalmThin } from "react-icons/pi";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Navbar() {
-  return (
-    <nav className="w-full bg-white shadow-md py-3 px-6 flex justify-between items-center fixed top-0 left-0 z-50">
-      {/* Logo */}
-      <Link to="/" className="text-2xl font-bold text-green-600 tracking-wide">
-        EcoDrive 🌱
-      </Link>
+  const [open, setOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-      {/* Navigation Links */}
-      <div className="hidden md:flex gap-8 font-medium text-gray-700">
-        <Link to="/" className="hover:text-green-600">Dashboard</Link>
-        <Link to="/trip/new" className="hover:text-green-600">Start Trip</Link>
-        <Link to="/trips" className="hover:text-green-600">Trips</Link>
-        <Link to="/challenges" className="hover:text-green-600">Challenges</Link>
-        <Link to="/achievements" className="hover:text-green-600">Achievements</Link>
-        <Link to="/forest" className="hover:text-green-600">Forest</Link>
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  return (
+    <header className="sticky top-0 z-50 backdrop-blur-sm bg-white/3 border-b border-white/6">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        {/* Logo */}
+        <div className="flex items-center gap-4">
+          <Link to="/" className="flex items-center gap-2 text-lg font-semibold">
+            <span className="text-2xl"><PiTreePalmThin /></span>
+            <span className="text-white">EcoDrive</span>
+          </Link>
+        </div>
+
+        {/* Desktop Nav */}
+        <nav className="hidden md:flex items-center gap-6 text-slate-200">
+          {user && <Link to="/dashboard" className="hover:underline">Dashboard</Link>}
+          <Link to="/features" className="hover:underline">Features</Link>
+          <a href="#how" className="hover:underline">How it Works</a>
+          <a href="#rewards" className="hover:underline">Rewards</a>
+          <a href="#why" className="hover:underline">Why EcoDrive?</a>
+        </nav>
+
+        {/* Desktop Right Side Buttons */}
+        <div className="hidden md:flex items-center gap-3">
+          {!user ? (
+            <>
+              <Link to="/login" className="px-4 py-2 rounded-lg border border-white/10 bg-white/3 text-sm hover:scale-105 transition">
+                Log In
+              </Link>
+              <Link to="/" className="px-4 py-2 rounded-full bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 text-slate-900 font-semibold shadow-lg hover:brightness-105 transition">
+                Start Journey
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/profile" className="px-4 py-2 rounded-lg bg-white/5 text-sm hover:scale-105 transition">
+                {user.firstName ? `Hi, ${user.firstName}` : "Profile"}
+              </Link>
+              <button onClick={handleLogout} className="px-4 py-2 rounded-lg border border-red-400/40 bg-red-500/20 text-red-300 text-sm hover:brightness-110 transition">
+                Logout
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Mobile menu button */}
+        <button
+          className="md:hidden inline-flex items-center justify-center p-2 rounded-lg bg-white/4"
+          onClick={() => setOpen(v => !v)}
+        >
+          <svg className="w-6 h-6 text-slate-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {open
+              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            }
+          </svg>
+        </button>
       </div>
 
-      {/* Profile Avatar */}
-      <img
-        src="https://i.pravatar.cc/40"
-        alt="avatar"
-        className="w-10 h-10 rounded-full cursor-pointer border-2 border-green-600"
-      />
-    </nav>
+      {/* Mobile Drawer */}
+      {open && (
+        <div className="md:hidden px-6 pb-6">
+          <div className="flex flex-col gap-3 rounded-xl p-4 backdrop-blur-md bg-white/4 border border-white/6">
+
+            {user && <Link to="/dashboard" className="py-2 px-3 rounded hover:bg-white/6">Dashboard</Link>}
+
+            <Link to="/features" className="py-2 px-3 rounded hover:bg-white/6">Features</Link>
+            <a href="#how" className="py-2 px-3 rounded hover:bg-white/6">How it Works</a>
+            <a href="#rewards" className="py-2 px-3 rounded hover:bg-white/6">Rewards</a>
+            <a href="#why" className="py-2 px-3 rounded hover:bg-white/6">Why EcoDrive?</a>
+
+            <div className="mt-2 flex gap-2">
+              {!user ? (
+                <>
+                  <Link to="/login" className="flex-1 text-center px-3 py-2 rounded-lg border border-white/10 bg-white/3">
+                    Log In
+                  </Link>
+                  <Link to="/" className="flex-1 text-center px-3 py-2 rounded-full bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 text-slate-900">
+                    Start Journey
+                  </Link>
+                </>
+              ) : (
+                <button
+                  onClick={handleLogout}
+                  className="flex-1 text-center px-3 py-2 rounded-lg border border-red-400/40 bg-red-500/20 text-red-300"
+                >
+                  Logout
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </header>
   );
 }
