@@ -3,6 +3,8 @@ import { Routes, Route } from "react-router-dom";
 
 import Home from "./components/common/Home";
 import Profile from "./pages/Profile";
+import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
 
 function App() {
   return (
@@ -30,7 +32,9 @@ function App() {
           </div>
         }/>
 
+        <Route path="/dashboard" element={<Dashboard />}/>
         <Route path="/profile" element={<Profile />}/>
+        <Route path="/login" element={<Login />}/>
       </Routes>
     </div>
   );

@@ -1,13 +1,17 @@
 import React from "react";
 import Navbar from "./Navbar";
 import { Link } from "react-router-dom"; // added
+import { FaCarRear, FaTrain,  FaEarthAmericas, FaBicycle} from "react-icons/fa6";
+import { BsFillTreeFill } from "react-icons/bs";
+import { CiTrophy } from "react-icons/ci";
+
 export default function Home() {
   // placeholder values
   const ecoScore = 82;
   const progress = ecoScore / 100;
   const xp = 120;
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#050814] via-[#05181a] to-[#04121a] text-slate-100 antialiased">
+    <div className="min-h-screen bg-gradient-to- from-[#050814] via-[#05181a] to-[#04121a] text-slate-100 antialiased">
       {/* Header / Navbar */}
       <Navbar />
 
@@ -120,14 +124,14 @@ export default function Home() {
 
               {/* Floating icons */}
               <div className="pointer-events-none">
-                <div className="absolute -right-6 -top-6 w-12 h-12 flex items-center justify-center rounded-full bg-white/4 shadow-md transform animate-float">
-                  🚌
+                <div className="absolute -right-6 -top-6 w-12 h-12 flex ml-6 items-center justify-center rounded-full bg-white/4 shadow-md transform animate-float">
+                  <FaCarRear className="text-2xl text-emerald-400" />
                 </div>
                 <div className="absolute -left-6 -bottom-6 w-10 h-10 flex items-center justify-center rounded-full bg-white/4 shadow-md transform animate-float-slow">
-                  🚴
+                <FaBicycle className="text-xl text-emerald-400" />
                 </div>
-                <div className="absolute right-0 top-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/4 shadow-md transform animate-float-delay">
-                  🌳
+                <div className="absolute right-0 top-10 w-9 h-9 ml-5 flex items-center justify-center rounded-full bg-white/4 shadow-md transform animate-float-delay">
+                 <BsFillTreeFill className="text-xl text-emerald-400" />
                 </div>
               </div>
             </div>
@@ -147,7 +151,7 @@ export default function Home() {
               {
                 title: "Choose Mode",
                 desc: "Pick public transport, walk/cycle, or car/bike",
-                icon: "🚍",
+                icon: <FaTrain className="text-xl" />,
               },
               {
                 title: "Travel in Real Life",
@@ -162,12 +166,16 @@ export default function Home() {
               {
                 title: "Earn Rewards",
                 desc: "Gain XP, CO₂ saved, trees, badges & streak progress",
-                icon: "🏆",
+                icon: <CiTrophy className="text-xl" />,
               },
             ].map((s, i) => (
               <div key={s.title} className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white/4 border border-white/6">
-                  <span className="text-xl">{s.icon}</span>
+                  {typeof s.icon === 'string' ? (
+                    <span className="text-xl">{s.icon}</span>
+                  ) : (
+                    s.icon
+                  )}
                 </div>
                 <div>
                   <div className="font-semibold">{s.title}</div>
@@ -265,7 +273,7 @@ export default function Home() {
           <h2 className="text-2xl font-semibold">Why choose EcoDrive?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <WhyCard
-              icon="🌍"
+              icon={<FaEarthAmericas className="text-2xl" />}
               title="Reduce Your Carbon Footprint"
               text="Track CO₂ saved and visualize your environmental impact over time."
             />
@@ -279,31 +287,6 @@ export default function Home() {
               title="Stay Motivated With Gamification"
               text="Streaks, challenges, and friends keep you engaged and rewarded."
             />
-          </div>
-        </section>
-
-        {/* Mini Auth Teaser */}
-        <section className="flex justify-center">
-          <div className="w-full max-w-md glass-card p-6 rounded-2xl backdrop-blur-md bg-white/3 border border-white/6 shadow-lg">
-            <div className="text-lg font-semibold mb-4">Welcome back</div>
-            <form className="space-y-3">
-              <input
-                className="w-full bg-white/4 border border-white/6 rounded-lg px-3 py-2 placeholder:text-slate-400"
-                placeholder="Email"
-                type="email"
-              />
-              <input
-                className="w-full bg-white/4 border border-white/6 rounded-lg px-3 py-2 placeholder:text-slate-400"
-                placeholder="Password"
-                type="password"
-              />
-              <button className="w-full px-4 py-2 rounded-full bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 text-slate-900 font-medium">
-                Log In
-              </button>
-            </form>
-            <div className="text-sm text-slate-300 mt-3">
-              New here? <span className="text-emerald-300">Create an account</span>
-            </div>
           </div>
         </section>
       </main>
@@ -367,7 +350,13 @@ function Badge({ name, unlocked }) {
 function WhyCard({ icon, title, text }) {
   return (
     <div className="p-4 rounded-2xl backdrop-blur-md bg-white/3 border border-white/6">
-      <div className="text-2xl mb-2">{icon}</div>
+      <div className="mb-2">
+        {typeof icon === 'string' ? (
+          <div className="text-2xl">{icon}</div>
+        ) : (
+          icon
+        )}
+      </div>
       <div className="font-semibold">{title}</div>
       <div className="text-sm text-slate-300 mt-1">{text}</div>
     </div>

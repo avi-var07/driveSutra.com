@@ -1,8 +1,7 @@
 
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
-import { loginUser } from '../../services/authService';
+import { useAuth } from '../../context/AuthContext';
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -12,7 +11,7 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { login } = useContext(AuthContext);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -25,49 +24,52 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
-      const response = await loginUser(formData);
-      login(response.data.user, response.data.token); // Save user + token in context
-      navigate('/dashboard');
+      const result = await login(formData.email, formData.password);
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Login failed. Please try again.');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError('Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-      <h2 className="text-3xl font-bold text-center text-green-700 mb-8">Welcome Back!</h2>
+    <div className="max-w-md w-full backdrop-blur-md bg-white/4 border border-white/6 rounded-xl shadow-lg p-8">
+      <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-emerald-400 to-sky-400 bg-clip-text text-transparent mb-8">Welcome Back!</h2>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg mb-4 backdrop-blur-sm">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <label className="block text-sm font-medium text-slate-200 mb-2">Email</label>
           <input
             type="email"
             name="email"
             value={formData.email}
             onChange={handleChange}
             required
-            className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition"
             placeholder="you@example.com"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Password</label>
+          <label className="block text-sm font-medium text-slate-200 mb-2">Password</label>
           <input
             type="password"
             name="password"
             value={formData.password}
             onChange={handleChange}
             required
-            className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition"
             placeholder="••••••••"
           />
         </div>
@@ -75,15 +77,15 @@ const LoginForm = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition duration-200 disabled:opacity-70"
+          className="w-full bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 text-slate-900 font-bold py-3 rounded-lg shadow-lg hover:brightness-110 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-gray-600">
+      <p className="mt-6 text-center text-slate-300">
         Don't have an account?{' '}
-        <Link to="/register" className="text-green-600 font-semibold hover:underline">
+        <Link to="/register" className="text-emerald-400 font-semibold hover:underline transition">
           Sign up
         </Link>
       </p>
