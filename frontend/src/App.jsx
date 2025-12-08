@@ -5,6 +5,7 @@ import Home from "./components/common/Home";
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
+import EcoDriveMap from "./components/EcoDriveMap";
 
 function App() {
   return (
@@ -31,6 +32,8 @@ function App() {
             Features Page Content
           </div>
         }/>
+
+        <Route path="/eco-map" element={<EcoDriveMap />}/>
 
         <Route path="/dashboard" element={<Dashboard />}/>
         <Route path="/profile" element={<Profile />}/>
