@@ -15,7 +15,7 @@ export default function Home() {
   // Carousel images - eco-friendly travel themes
   const carouselSlides = [
     {
-      image: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1200&h=600&fit=crop",
+      image: "https://media.istockphoto.com/id/1311425083/video/side-view-of-a-generic-autonomous-electric-car-driving-through-the-green-countryside.jpg?s=640x640&k=20&c=ce1Ss-GXZ7JZoXGFYw6rlMWimtSLWBwUlt9NVIzR0Zw=",
       title: "Sustainable Urban Mobility",
       desc: "Choose greener ways to move"
     },

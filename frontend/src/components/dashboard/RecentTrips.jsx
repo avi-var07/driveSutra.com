@@ -54,15 +54,15 @@ const RecentTrips = ({ trips, loading }) => {
 
   if (loading) {
     return (
-      <div className="glass-card backdrop-blur-md bg-white/4 border border-white/6 rounded-2xl shadow-lg p-6">
+      <div className="glass-card backdrop-blur-md bg-emerald-950/20 border border-emerald-800/30 rounded-2xl shadow-lg p-6">
         <h2 className="text-xl font-bold text-white mb-4">Recent Trips</h2>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse flex items-center gap-4 p-4 bg-white/5 rounded-lg">
-              <div className="w-12 h-12 bg-white/10 rounded-full" />
+            <div key={i} className="animate-pulse flex items-center gap-4 p-4 bg-emerald-950/30 rounded-lg">
+              <div className="w-12 h-12 bg-emerald-800/30 rounded-full" />
               <div className="flex-1 space-y-2">
-                <div className="h-4 bg-white/10 rounded w-3/4" />
-                <div className="h-3 bg-white/10 rounded w-1/2" />
+                <div className="h-4 bg-emerald-800/30 rounded w-3/4" />
+                <div className="h-3 bg-emerald-800/30 rounded w-1/2" />
               </div>
             </div>
           ))}
@@ -72,12 +72,12 @@ const RecentTrips = ({ trips, loading }) => {
   }
 
   return (
-    <div className="glass-card backdrop-blur-md bg-white/4 border border-white/6 rounded-2xl shadow-lg p-6">
+    <div className="glass-card backdrop-blur-md bg-emerald-950/20 border border-emerald-800/30 rounded-2xl shadow-lg p-6 hover:bg-emerald-950/30 hover:border-emerald-700/40 transition-all duration-300">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-white">Recent Trips</h2>
         <button
           onClick={() => navigate('/trips')}
-          className="text-emerald-400 hover:text-emerald-300 font-medium text-sm flex items-center gap-1"
+          className="text-emerald-400 hover:text-emerald-300 font-medium text-sm flex items-center gap-1 transition-colors duration-300"
         >
           View All <FaArrowRight className="text-xs" />
         </button>
@@ -85,13 +85,13 @@ const RecentTrips = ({ trips, loading }) => {
 
       {!trips || trips.length === 0 ? (
         <div className="text-center py-8">
-          <div className="text-slate-400 mb-2">
+          <div className="text-emerald-400 mb-2">
             <FaCar className="text-5xl mx-auto mb-3" />
           </div>
           <p className="text-slate-400 mb-4">No trips recorded yet</p>
           <button
             onClick={() => navigate('/new-trip')}
-            className="bg-gradient-to-r from-emerald-400 to-sky-400 text-slate-900 px-6 py-2 rounded-full hover:brightness-110 transition-all font-medium"
+            className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-emerald-500/50 hover:scale-105 transition-all duration-300 font-medium"
           >
             Record Your First Trip
           </button>
@@ -106,10 +106,10 @@ const RecentTrips = ({ trips, loading }) => {
             return (
               <div
                 key={trip._id}
-                className="flex items-center gap-4 p-4 border border-white/10 rounded-xl hover:bg-white/5 transition-all cursor-pointer"
+                className="flex items-center gap-4 p-4 border border-emerald-800/30 rounded-xl hover:bg-emerald-950/30 hover:border-emerald-700/40 transition-all duration-300 cursor-pointer"
                 onClick={() => navigate('/trips')}
               >
-                <div className="p-3 rounded-full bg-white/10">
+                <div className="p-3 rounded-full bg-emerald-500/20 border border-emerald-500/30">
                   <ModeIcon className="text-xl text-emerald-400" />
                 </div>
 

@@ -137,7 +137,7 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#050814] via-[#05181a] to-[#04121a] text-slate-100">
+      <div className="min-h-screen bg-gradient-to-br from-[#0d1f1a] via-[#112820] to-[#0a1d16] text-slate-100">
         <Navbar />
         <div className="flex items-center justify-center h-screen">
           <LoadingSpinner color="white" size="lg" />
@@ -147,7 +147,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#050814] via-[#05181a] to-[#04121a] text-slate-100 antialiased">
+    <div className="min-h-screen bg-gradient-to-br from-[#0d1f1a] via-[#112820] to-[#0a1d16] text-slate-100 antialiased">
       <Navbar />
       
       <main className="max-w-7xl mx-auto px-6 py-8">
@@ -164,12 +164,12 @@ const Dashboard = () => {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className={`flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/4 border border-white/6 rounded-lg hover:bg-white/6 transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-emerald-950/30 border border-emerald-800/30 rounded-lg hover:bg-emerald-950/50 hover:border-emerald-700/40 transition-all duration-300 ${
               refreshing ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
-            <FaSync className={`text-slate-200 ${refreshing ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline text-slate-200">Refresh</span>
+            <FaSync className={`text-emerald-300 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline text-emerald-300">Refresh</span>
           </button>
         </div>
 
@@ -204,21 +204,21 @@ const Dashboard = () => {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div 
             onClick={() => navigate('/new-trip')}
-            className="glass-card p-6 rounded-2xl backdrop-blur-md bg-white/4 border border-white/6 shadow-lg cursor-pointer hover:bg-white/6 hover:-translate-y-1 transition-all"
+            className="glass-card p-6 rounded-2xl backdrop-blur-md bg-emerald-950/20 border border-emerald-800/30 shadow-lg cursor-pointer hover:bg-emerald-950/30 hover:border-emerald-700/40 hover:-translate-y-1 transition-all duration-300"
           >
             <h3 className="text-lg font-bold mb-2 text-white">🚴 New Trip</h3>
             <p className="text-sm text-slate-300">Record your latest eco-friendly journey</p>
           </div>
           <div 
             onClick={() => navigate('/challenges')}
-            className="glass-card p-6 rounded-2xl backdrop-blur-md bg-white/4 border border-white/6 shadow-lg cursor-pointer hover:bg-white/6 hover:-translate-y-1 transition-all"
+            className="glass-card p-6 rounded-2xl backdrop-blur-md bg-emerald-950/20 border border-emerald-800/30 shadow-lg cursor-pointer hover:bg-emerald-950/30 hover:border-emerald-700/40 hover:-translate-y-1 transition-all duration-300"
           >
             <h3 className="text-lg font-bold mb-2 text-white">🏆 Challenges</h3>
             <p className="text-sm text-slate-300">Join active challenges and compete</p>
           </div>
           <div 
             onClick={() => navigate('/forest')}
-            className="glass-card p-6 rounded-2xl backdrop-blur-md bg-white/4 border border-white/6 shadow-lg cursor-pointer hover:bg-white/6 hover:-translate-y-1 transition-all"
+            className="glass-card p-6 rounded-2xl backdrop-blur-md bg-emerald-950/20 border border-emerald-800/30 shadow-lg cursor-pointer hover:bg-emerald-950/30 hover:border-emerald-700/40 hover:-translate-y-1 transition-all duration-300"
           >
             <h3 className="text-lg font-bold mb-2 text-white">🌳 Your Forest</h3>
             <p className="text-sm text-slate-300">See your environmental impact grow</p>

@@ -54,7 +54,7 @@ const StatsCards = ({ stats }) => {
         return (
           <div
             key={item.id}
-            className="glass-card backdrop-blur-md bg-white/4 border border-white/6 rounded-2xl shadow-lg p-6 hover:bg-white/6 hover:-translate-y-1 transition-all"
+            className="glass-card backdrop-blur-md bg-emerald-950/20 border border-emerald-800/30 rounded-2xl shadow-lg p-6 hover:bg-emerald-950/30 hover:border-emerald-700/40 hover:-translate-y-1 transition-all duration-300"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -63,12 +63,12 @@ const StatsCards = ({ stats }) => {
                   {item.value}
                 </h3>
               </div>
-              <div className="bg-white/10 p-3 rounded-full">
+              <div className="bg-emerald-500/20 border border-emerald-500/30 p-3 rounded-full">
                 <Icon className="text-2xl text-emerald-400" />
               </div>
             </div>
             <div className="mt-4">
-              <div className="h-1 bg-gradient-to-r from-emerald-400 to-sky-400 rounded-full" 
+              <div className="h-1 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full" 
                    style={{ width: '100%' }} />
             </div>
           </div>
