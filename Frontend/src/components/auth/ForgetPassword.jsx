@@ -145,9 +145,9 @@ const ForgetPassword = () => {
 
       if (response.ok) {
         setStep(4);
-        // Redirect to login after 3 seconds
+        // Redirect to unified auth page after 3 seconds
         setTimeout(() => {
-          navigate('/login');
+          navigate('/auth');
         }, 3000);
       } else {
         setError(data.message || 'Failed to reset password');
@@ -567,7 +567,7 @@ const ForgetPassword = () => {
           className="mt-6 text-center text-slate-300"
         >
           Remember your password?{' '}
-          <Link to="/login" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors duration-300">
+          <Link to="/auth" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors duration-300">
             Sign in
           </Link>
         </motion.p>

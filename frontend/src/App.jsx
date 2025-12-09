@@ -1,20 +1,48 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 
 import Home from "./components/common/Home";
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import AuthPage from "./pages/AuthPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import EcoDriveMap from "./components/EcoDriveMap";
+import ProtectedRoute from "./components/common/ProtectedRoute";
 
 function App() {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-black">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full min-h-screen relative font-sans bg-black overflow-hidden">
       <Routes>
         {/* HOME PAGE */}
         <Route path="/" element={<Home />} />
+
+        {/* AUTH PAGES */}
+        <Route path="/auth" element={isAuthenticated ? <Navigate to="/dashboard" /> : <AuthPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        {/* PROTECTED PAGES */}
+        <Route 
+          path="/dashboard" 
+          element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+        />
+        <Route 
+          path="/profile" 
+          element={<ProtectedRoute><Profile /></ProtectedRoute>} 
+        />
 
         {/* OTHER PAGES */}
         <Route path="/about" element={
@@ -37,11 +65,8 @@ function App() {
 
         <Route path="/eco-map" element={<EcoDriveMap />}/>
 
-        <Route path="/dashboard" element={<Dashboard />}/>
-        <Route path="/profile" element={<Profile />}/>
-        <Route path="/login" element={<Login />}/>
-        <Route path="/register" element={<Register />}/>
-        <Route path="/forgot-password" element={<ForgotPassword />}/>
+        {/* FALLBACK */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>
   );
