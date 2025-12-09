@@ -90,7 +90,7 @@ const RegisterForm = () => {
   };
 
   const handleOtpChange = (index, value) => {
-    if (!/^\d*$/.test(value)) return; // Only allow digits
+    
 
     const newOtp = [...otp];
     newOtp[index] = value;
@@ -450,41 +450,6 @@ const RegisterForm = () => {
 
               {/* OTP Input Fields */}
               <div className="flex gap-2 justify-center">
-            {/* Terms and Conditions Checkbox */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45 }}
-              className="flex items-start gap-3"
-            >
-              <input
-                type="checkbox"
-                id="terms"
-                checked={termsAccepted}
-                onChange={(e) => setTermsAccepted(e.target.checked)}
-                className="mt-1 w-5 h-5 rounded border-2 border-emerald-800/50 bg-emerald-950/30 cursor-pointer accent-emerald-500 focus:ring-2 focus:ring-emerald-500/50"
-              />
-              <label htmlFor="terms" className="text-sm text-slate-400 cursor-pointer">
-                I agree to the{' '}
-                <a 
-                  href="/terms" 
-                  className="text-emerald-400 hover:text-emerald-300 transition-colors"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Terms and Conditions
-                </a>
-                {' '}and{' '}
-                <a 
-                  href="/privacy" 
-                  className="text-emerald-400 hover:text-emerald-300 transition-colors"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Privacy Policy
-                </a>
-              </label>
-            </motion.div>
                 {otp.map((digit, index) => (
                   <motion.input
                     key={index}
