@@ -90,10 +90,10 @@ const RegisterForm = () => {
   };
 
   const handleOtpChange = (index, value) => {
-    
+   
 
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = value.slice(0, 1); // Only one digit per field
     setOtp(newOtp);
 
     // Auto-focus next input
@@ -191,7 +191,7 @@ const RegisterForm = () => {
                 transition={{ delay: s * 0.1 }}
                 className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all duration-300 ${
                   step >= s
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/50'
+                    ? 'bg-linear-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/50'
                     : 'bg-emerald-950/30 border border-emerald-800/30 text-slate-500'
                 }`}
               >
@@ -199,7 +199,7 @@ const RegisterForm = () => {
               </motion.div>
               {s < 3 && (
                 <div className={`h-0.5 w-12 transition-all duration-300 ${
-                  step > s ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-emerald-800/30'
+                  step > s ? 'bg-linear-to-r from-emerald-500 to-teal-500' : 'bg-emerald-800/30'
                 }`} />
               )}
             </React.Fragment>
@@ -210,7 +210,7 @@ const RegisterForm = () => {
             key={step}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent"
+            className="text-2xl font-bold bg-linear-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent"
           >
             {step === 1 && 'Create Your Account'}
             {step === 2 && 'Verify Your Email'}
@@ -258,7 +258,7 @@ const RegisterForm = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                <label className="flex text-sm font-medium text-slate-300 mb-2 items-center gap-2">
                   <FaUser className="text-emerald-400" />
                   First Name
                 </label>
@@ -279,7 +279,7 @@ const RegisterForm = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
               >
-                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                <label className="flex text-sm font-medium text-slate-300 mb-2 items-center gap-2">
                   <FaUser className="text-emerald-400" />
                   Last Name
                 </label>
@@ -300,7 +300,7 @@ const RegisterForm = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                <label className="flex text-sm font-medium text-slate-300 mb-2 items-center gap-2">
                   <FaEnvelope className="text-emerald-400" />
                   Email Address
                 </label>
@@ -321,7 +321,7 @@ const RegisterForm = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                <label className="flex text-sm font-medium text-slate-300 mb-2 items-center gap-2">
                   <FaLock className="text-emerald-400" />
                   Password
                 </label>
@@ -343,7 +343,7 @@ const RegisterForm = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                <label className="flex text-sm font-medium text-slate-300 mb-2 items-center gap-2">
                   <FaShieldAlt className="text-emerald-400" />
                   Confirm Password
                 </label>
@@ -403,7 +403,7 @@ const RegisterForm = () => {
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-linear-to-r from-emerald-500 to-teal-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -439,7 +439,7 @@ const RegisterForm = () => {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 200 }}
-                  className="w-16 h-16 mx-auto bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/50"
+                  className="w-16 h-16 mx-auto bg-linear-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/50"
                 >
                   <FaEnvelope className="text-3xl text-white" />
                 </motion.div>
@@ -472,7 +472,7 @@ const RegisterForm = () => {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleVerifyOTP}
                 disabled={loading || otp.join('').length !== 6}
-                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-linear-to-r from-emerald-500 to-teal-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -525,7 +525,7 @@ const RegisterForm = () => {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                className="w-24 h-24 mx-auto bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-emerald-500/50"
+                className="w-24 h-24 mx-auto bg-linear-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mb-6 shadow-2xl shadow-emerald-500/50"
               >
                 <FaCheckCircle className="text-5xl text-white" />
               </motion.div>
@@ -562,7 +562,7 @@ const RegisterForm = () => {
                 initial={{ width: 0 }}
                 animate={{ width: "100%" }}
                 transition={{ delay: 0.6, duration: 2 }}
-                className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full mt-6"
+                className="h-1 bg-linear-to-r from-emerald-500 to-teal-500 rounded-full mt-6"
               />
             </motion.div>
           )}

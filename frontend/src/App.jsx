@@ -33,8 +33,10 @@ function App() {
         {/* HOME PAGE */}
         <Route path="/" element={<Home />} />
 
-        {/* AUTH PAGES */}
+        {/* AUTH PAGES - Unified auth page with login/register toggle */}
         <Route path="/auth" element={isAuthenticated ? <Navigate to="/dashboard" /> : <AuthPage />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <AuthPage />} />
+        <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <AuthPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* PROTECTED PAGES */}
