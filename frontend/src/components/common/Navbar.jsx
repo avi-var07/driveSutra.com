@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FaLeaf } from "react-icons/fa6";
 import { motion } from "motion/react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const { isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <>
@@ -28,22 +31,47 @@ export default function Navbar() {
 
           {/* Desktop CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link 
-              to="/auth" 
-              className="group px-5 py-2.5 rounded-lg border border-emerald-700/40 bg-emerald-950/30 text-slate-200 font-medium hover:bg-emerald-950/50 hover:border-emerald-600/60 hover:text-emerald-300 transition-all duration-300 backdrop-blur-sm"
-            >
-              <span className="relative">
-                Log In
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-400 group-hover:w-full transition-all duration-300"></span>
-              </span>
-            </Link>
-            <Link 
-              to="/eco-map" 
-              className="group px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-lg shadow-emerald-900/30 hover:shadow-emerald-900/50 hover:scale-105 transition-all duration-300 flex items-center gap-2"
-            >
-              <FaLeaf className="text-sm group-hover:rotate-12 transition-transform duration-300" />
-              Start Eco Trip
-            </Link>
+            {!isAuthenticated ? (
+              <>
+                <Link 
+                  to="/auth" 
+                  className="group px-5 py-2.5 rounded-lg border border-emerald-700/40 bg-emerald-950/30 text-slate-200 font-medium hover:bg-emerald-950/50 hover:border-emerald-600/60 hover:text-emerald-300 transition-all duration-300 backdrop-blur-sm"
+                >
+                  <span className="relative">
+                    Log In
+                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-400 group-hover:w-full transition-all duration-300"></span>
+                  </span>
+                </Link>
+                <Link 
+                  to="/eco-map" 
+                  className="group px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-lg shadow-emerald-900/30 hover:shadow-emerald-900/50 hover:scale-105 transition-all duration-300 flex items-center gap-2"
+                >
+                  <FaLeaf className="text-sm group-hover:rotate-12 transition-transform duration-300" />
+                  Start Eco Trip
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/dashboard" 
+                  className="group px-5 py-2.5 rounded-lg border border-emerald-700/40 bg-emerald-950/30 text-slate-200 font-medium hover:bg-emerald-950/50 hover:border-emerald-600/60 hover:text-emerald-300 transition-all duration-300 backdrop-blur-sm"
+                >
+                  <span className="relative">
+                    Dashboard
+                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-400 group-hover:w-full transition-all duration-300"></span>
+                  </span>
+                </Link>
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate("/");
+                  }}
+                  className="group px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold shadow-lg shadow-red-900/30 hover:shadow-red-900/50 hover:scale-105 transition-all duration-300"
+                >
+                  Logout
+                </button>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -68,28 +96,56 @@ export default function Navbar() {
         {open && (
           <div className="md:hidden px-6 pb-6 animate-slideDown">
             <div className="flex flex-col gap-2 rounded-xl p-4 backdrop-blur-md bg-emerald-950/40 border border-emerald-800/30">
-              <MobileNavLink to="/dashboard" onClick={() => setOpen(false)}>Dashboard</MobileNavLink>
               <MobileNavLink to="/features" onClick={() => setOpen(false)}>Features</MobileNavLink>
-              <MobileNavLink to="/trips" onClick={() => setOpen(false)}>My Trips</MobileNavLink>
-              <MobileNavLink to="/challenges" onClick={() => setOpen(false)}>Challenges</MobileNavLink>
-              <MobileNavLink to="/forest" onClick={() => setOpen(false)}>Forest</MobileNavLink>
+              {isAuthenticated && (
+                <>
+                  <MobileNavLink to="/dashboard" onClick={() => setOpen(false)}>Dashboard</MobileNavLink>
+                  <MobileNavLink to="/trips" onClick={() => setOpen(false)}>My Trips</MobileNavLink>
+                  <MobileNavLink to="/challenges" onClick={() => setOpen(false)}>Challenges</MobileNavLink>
+                  <MobileNavLink to="/forest" onClick={() => setOpen(false)}>Forest</MobileNavLink>
+                </>
+              )}
 
               <div className="mt-3 pt-3 border-t border-emerald-800/30 flex flex-col gap-2">
-                <Link 
-                  to="/auth" 
-                  onClick={() => setOpen(false)}
-                  className="text-center px-4 py-2.5 rounded-lg border border-emerald-700/40 bg-emerald-950/30 text-slate-200 font-medium hover:bg-emerald-950/50 hover:border-emerald-600/60 transition-all duration-300"
-                >
-                  Log In
-                </Link>
-                <Link 
-                  to="/eco-map" 
-                  onClick={() => setOpen(false)}
-                  className="text-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2"
-                >
-                  <FaLeaf className="text-sm" />
-                  Start Eco Trip
-                </Link>
+                {!isAuthenticated ? (
+                  <>
+                    <Link 
+                      to="/auth" 
+                      onClick={() => setOpen(false)}
+                      className="text-center px-4 py-2.5 rounded-lg border border-emerald-700/40 bg-emerald-950/30 text-slate-200 font-medium hover:bg-emerald-950/50 hover:border-emerald-600/60 transition-all duration-300"
+                    >
+                      Log In
+                    </Link>
+                    <Link 
+                      to="/eco-map" 
+                      onClick={() => setOpen(false)}
+                      className="text-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2"
+                    >
+                      <FaLeaf className="text-sm" />
+                      Start Eco Trip
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link 
+                      to="/dashboard" 
+                      onClick={() => setOpen(false)}
+                      className="text-center px-4 py-2.5 rounded-lg border border-emerald-700/40 bg-emerald-950/30 text-slate-200 font-medium hover:bg-emerald-950/50 hover:border-emerald-600/60 transition-all duration-300"
+                    >
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setOpen(false);
+                        navigate("/");
+                      }}
+                      className="text-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold shadow-lg shadow-red-900/30"
+                    >
+                      Logout
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
