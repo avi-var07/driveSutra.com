@@ -5,6 +5,8 @@ import Home from "./components/common/Home";
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 import EcoDriveMap from "./components/EcoDriveMap";
 
 function App() {
@@ -38,6 +40,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />}/>
         <Route path="/profile" element={<Profile />}/>
         <Route path="/login" element={<Login />}/>
+        <Route path="/register" element={<Register />}/>
+        <Route path="/forgot-password" element={<ForgotPassword />}/>
       </Routes>
     </div>
   );

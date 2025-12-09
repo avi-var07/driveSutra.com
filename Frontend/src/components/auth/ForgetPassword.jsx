@@ -1,80 +1,53 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { useAuth } from '../../context/AuthContext';
 import { 
-  FaUser, 
   FaEnvelope, 
   FaLock, 
   FaCheckCircle,
   FaShieldAlt,
-  FaLeaf 
+  FaKey,
+  FaArrowLeft
 } from 'react-icons/fa';
 
-const RegisterForm = () => {
-  const [step, setStep] = useState(1); // 1: Details, 2: OTP, 3: Success
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
+const ForgetPassword = () => {
+  const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Password, 4: Success
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpToken, setOtpToken] = useState(''); // Store token from OTP verification
 
-  const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError('');
-  };
-
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      setError('Name is required');
-      return false;
-    }
-    if (!formData.email.trim()) {
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
       setError('Email is required');
-      return false;
+      return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError('Invalid email format');
-      return false;
+      return;
     }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return false;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
-    }
-    return true;
-  };
-
-  const handleSendOTP = async () => {
-    if (!validateForm()) return;
 
     setLoading(true);
     setError('');
 
     try {
       // API call to send OTP via nodemailer
-      const response = await fetch('http://localhost:5000/api/auth/send-otp', {
+      const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
+        body: JSON.stringify({ email })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setOtpSent(true);
         setStep(2);
       } else {
         setError(data.message || 'Failed to send OTP');
@@ -95,13 +68,13 @@ const RegisterForm = () => {
 
     // Auto-focus next input
     if (value && index < 5) {
-      document.getElementById(`otp-${index + 1}`)?.focus();
+      document.getElementById(`forgot-otp-${index + 1}`)?.focus();
     }
   };
 
   const handleOtpKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      document.getElementById(`otp-${index - 1}`)?.focus();
+      document.getElementById(`forgot-otp-${index - 1}`)?.focus();
     }
   };
 
@@ -117,11 +90,11 @@ const RegisterForm = () => {
 
     try {
       // API call to verify OTP
-      const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
+      const response = await fetch('http://localhost:5000/api/auth/verify-forgot-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          email: formData.email,
+          email,
           otp: otpCode 
         })
       });
@@ -129,10 +102,8 @@ const RegisterForm = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setOtpVerified(true);
+        setOtpToken(data.resetToken); // Store reset token for password change
         setStep(3);
-        // Proceed to registration
-        await handleRegister();
       } else {
         setError(data.message || 'Invalid OTP');
       }
@@ -143,38 +114,46 @@ const RegisterForm = () => {
     }
   };
 
-  const handleRegister = async () => {
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     setLoading(true);
+    setError('');
 
     try {
-      // API call to register user with JWT
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      // API call to reset password
+      const response = await fetch('http://localhost:5000/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password
+          email,
+          resetToken: otpToken,
+          newPassword
         })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Store JWT token
-        localStorage.setItem('token', data.token);
-        
-        // Simulate success for 2 seconds before redirect
+        setStep(4);
+        // Redirect to login after 3 seconds
         setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
+          navigate('/login');
+        }, 3000);
       } else {
-        setError(data.message || 'Registration failed');
-        setStep(1);
+        setError(data.message || 'Failed to reset password');
       }
     } catch (err) {
       setError('Network error. Please try again.');
-      setStep(1);
     } finally {
       setLoading(false);
     }
@@ -183,7 +162,25 @@ const RegisterForm = () => {
   const handleResendOTP = async () => {
     setOtp(['', '', '', '', '', '']);
     setError('');
-    await handleSendOTP();
+    
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setError(data.message || 'Failed to resend OTP');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -195,23 +192,23 @@ const RegisterForm = () => {
     >
       {/* Progress Indicator */}
       <div className="mb-8">
-        <div className="flex items-center justify-center gap-4 mb-4">
-          {[1, 2, 3].map((s) => (
+        <div className="flex items-center justify-center gap-3 mb-4">
+          {[1, 2, 3, 4].map((s) => (
             <React.Fragment key={s}>
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: s * 0.1 }}
-                className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all duration-300 ${
+                transition={{ delay: s * 0.08 }}
+                className={`flex items-center justify-center w-9 h-9 rounded-full font-bold text-sm transition-all duration-300 ${
                   step >= s
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/50'
                     : 'bg-emerald-950/30 border border-emerald-800/30 text-slate-500'
                 }`}
               >
-                {step > s ? <FaCheckCircle /> : s}
+                {step > s ? <FaCheckCircle className="text-sm" /> : s}
               </motion.div>
-              {s < 3 && (
-                <div className={`h-0.5 w-12 transition-all duration-300 ${
+              {s < 4 && (
+                <div className={`h-0.5 w-8 transition-all duration-300 ${
                   step > s ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-emerald-800/30'
                 }`} />
               )}
@@ -225,14 +222,16 @@ const RegisterForm = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent"
           >
-            {step === 1 && 'Create Your Account'}
+            {step === 1 && 'Forgot Password'}
             {step === 2 && 'Verify Your Email'}
-            {step === 3 && 'Welcome Aboard!'}
+            {step === 3 && 'Create New Password'}
+            {step === 4 && 'Password Reset Complete'}
           </motion.h2>
           <p className="text-sm text-slate-400 mt-2">
-            {step === 1 && 'Join the eco-friendly community'}
+            {step === 1 && 'Enter your email to receive a verification code'}
             {step === 2 && 'Enter the 6-digit code sent to your email'}
-            {step === 3 && 'Your account has been created successfully'}
+            {step === 3 && 'Choose a strong password for your account'}
+            {step === 4 && 'Your password has been successfully reset'}
           </p>
         </div>
       </div>
@@ -251,46 +250,21 @@ const RegisterForm = () => {
         )}
 
         <AnimatePresence mode="wait">
-          {/* Step 1: Registration Form */}
+          {/* Step 1: Email Input */}
           {step === 1 && (
             <motion.form
-              key="form"
+              key="email"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendOTP();
-              }}
-              className="space-y-5"
+              onSubmit={handleEmailSubmit}
+              className="space-y-6"
             >
-              {/* Name Field */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-              >
-                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
-                  <FaUser className="text-emerald-400" />
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
-                  placeholder="John Doe"
-                />
-              </motion.div>
-
-              {/* Email Field */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
               >
                 <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                   <FaEnvelope className="text-emerald-400" />
@@ -298,63 +272,21 @@ const RegisterForm = () => {
                 </label>
                 <input
                   type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError('');
+                  }}
                   required
                   className="w-full px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
                   placeholder="you@example.com"
                 />
               </motion.div>
 
-              {/* Password Field */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
-                  <FaLock className="text-emerald-400" />
-                  Password
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
-                  placeholder="••••••••"
-                />
-                <p className="text-xs text-slate-500 mt-1">At least 6 characters</p>
-              </motion.div>
-
-              {/* Confirm Password Field */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
-                  <FaShieldAlt className="text-emerald-400" />
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
-                  placeholder="••••••••"
-                />
-              </motion.div>
-
-              {/* Submit Button */}
               <motion.button
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.2 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
@@ -368,11 +300,11 @@ const RegisterForm = () => {
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                       className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                     />
-                    Sending OTP...
+                    Sending Code...
                   </>
                 ) : (
                   <>
-                    <FaEnvelope />
+                    <FaKey />
                     Send Verification Code
                   </>
                 )}
@@ -400,7 +332,7 @@ const RegisterForm = () => {
                   <FaEnvelope className="text-3xl text-white" />
                 </motion.div>
                 <p className="text-sm text-slate-400">
-                  We've sent a code to <span className="text-emerald-400 font-semibold">{formData.email}</span>
+                  We've sent a code to <span className="text-emerald-400 font-semibold">{email}</span>
                 </p>
               </div>
 
@@ -409,7 +341,7 @@ const RegisterForm = () => {
                 {otp.map((digit, index) => (
                   <motion.input
                     key={index}
-                    id={`otp-${index}`}
+                    id={`forgot-otp-${index}`}
                     type="text"
                     maxLength={1}
                     value={digit}
@@ -443,7 +375,7 @@ const RegisterForm = () => {
                 ) : (
                   <>
                     <FaCheckCircle />
-                    Verify & Register
+                    Verify Code
                   </>
                 )}
               </motion.button>
@@ -462,15 +394,115 @@ const RegisterForm = () => {
               {/* Back Button */}
               <button
                 onClick={() => setStep(1)}
-                className="w-full text-slate-400 hover:text-slate-300 py-2 transition-colors duration-300"
+                className="w-full text-slate-400 hover:text-slate-300 py-2 transition-colors duration-300 flex items-center justify-center gap-2"
               >
-                ← Back to form
+                <FaArrowLeft className="text-sm" />
+                Back to email
               </button>
             </motion.div>
           )}
 
-          {/* Step 3: Success */}
+          {/* Step 3: New Password */}
           {step === 3 && (
+            <motion.form
+              key="password"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              onSubmit={handlePasswordReset}
+              className="space-y-5"
+            >
+              <div className="text-center mb-4">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200 }}
+                  className="w-16 h-16 mx-auto bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/50"
+                >
+                  <FaLock className="text-3xl text-white" />
+                </motion.div>
+              </div>
+
+              {/* New Password Field */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                  <FaLock className="text-emerald-400" />
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setError('');
+                  }}
+                  required
+                  className="w-full px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
+                  placeholder="••••••••"
+                />
+                <p className="text-xs text-slate-500 mt-1">At least 6 characters</p>
+              </motion.div>
+
+              {/* Confirm Password Field */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                  <FaShieldAlt className="text-emerald-400" />
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setError('');
+                  }}
+                  required
+                  className="w-full px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
+                  placeholder="••••••••"
+                />
+              </motion.div>
+
+              {/* Submit Button */}
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                    />
+                    Resetting Password...
+                  </>
+                ) : (
+                  <>
+                    <FaCheckCircle />
+                    Reset Password
+                  </>
+                )}
+              </motion.button>
+            </motion.form>
+          )}
+
+          {/* Step 4: Success */}
+          {step === 4 && (
             <motion.div
               key="success"
               initial={{ opacity: 0, scale: 0.8 }}
@@ -493,7 +525,7 @@ const RegisterForm = () => {
                 transition={{ delay: 0.3 }}
                 className="text-2xl font-bold text-white mb-2"
               >
-                Registration Successful!
+                Password Reset Successful!
               </motion.h3>
 
               <motion.p
@@ -502,7 +534,7 @@ const RegisterForm = () => {
                 transition={{ delay: 0.4 }}
                 className="text-slate-400 mb-6"
               >
-                Welcome to driveSutra.com, {formData.name}!
+                Your password has been updated successfully
               </motion.p>
 
               <motion.div
@@ -511,14 +543,14 @@ const RegisterForm = () => {
                 transition={{ delay: 0.5 }}
                 className="flex items-center justify-center gap-2 text-emerald-400"
               >
-                <FaLeaf className="text-2xl" />
-                <span>Redirecting to dashboard...</span>
+                <FaKey className="text-2xl" />
+                <span>Redirecting to login...</span>
               </motion.div>
 
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: "100%" }}
-                transition={{ delay: 0.6, duration: 2 }}
+                transition={{ delay: 0.6, duration: 3 }}
                 className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full mt-6"
               />
             </motion.div>
@@ -526,15 +558,15 @@ const RegisterForm = () => {
         </AnimatePresence>
       </div>
 
-      {/* Login Link */}
+      {/* Back to Login Link */}
       {step === 1 && (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.4 }}
           className="mt-6 text-center text-slate-300"
         >
-          Already have an account?{' '}
+          Remember your password?{' '}
           <Link to="/login" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors duration-300">
             Sign in
           </Link>
@@ -544,4 +576,4 @@ const RegisterForm = () => {
   );
 };
 
-export default RegisterForm;
+export default ForgetPassword;
