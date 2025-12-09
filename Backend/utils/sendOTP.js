@@ -3,7 +3,8 @@ import nodemailer from "nodemailer";
 export const otpStore = {};  // temp memory store
 
 export const sendOTPEmail = async (email) => {
-  const otp = Math.floor(100000 + Math.random() * 900000);
+  const otp = Math.floor(100000 + Math.random() * 900000).toString(); 
+
   otpStore[email] = otp;
 
   const transporter = nodemailer.createTransport({
