@@ -1,27 +1,24 @@
 {
-  "name": "backend",
+  "name": "drivesutrago-backend",
   "version": "1.0.0",
-  "description": "",
   "main": "server.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon server.js",
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "bcrypt": "^6.0.0",
+    "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "helmet": "^8.1.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "helmet": "^7.2.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.0.1",
+    "mongoose": "^8.20.2",
     "morgan": "^1.10.1",
-    "nodemailer": "^7.0.11"
+    "nodemailer": "^6.10.1",
+    "otp-generator": "^4.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

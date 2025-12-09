@@ -1,120 +1,115 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { loginAPI, registerAPI } from "../services/authService";
 
 const AuthContext = createContext(null);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [token, setToken] = useState(null);
 
+  // Load user and token from storage on app mount
   useEffect(() => {
-    const checkAuth = async () => {
+    const storedUser = localStorage.getItem("user");
+    const storedToken = localStorage.getItem("token");
+    if (storedUser) {
       try {
-        const token = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-
-        if (token && storedUser) {
-          setUser(JSON.parse(storedUser));
-          setIsAuthenticated(true);
-        }
+        setUser(JSON.parse(storedUser));
       } catch (error) {
-        console.error('Auth check error:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      } finally {
-        setLoading(false);
+        console.error("Failed to parse stored user:", error);
+        localStorage.removeItem("user");
       }
-    };
-
-    checkAuth();
+    }
+    if (storedToken) {
+      setToken(storedToken);
+    }
+    setLoading(false);
   }, []);
 
+  // LOGIN
   const login = async (email, password) => {
     try {
-      const mockUser = {
-        id: '1',
-        name: 'John Doe',
-        email: email,
-        level: 5,
-        xp: 3450,
-        achievements: [],
-        rank: 142
-      };
-
-      const mockToken = 'mock-jwt-token-' + Date.now();
-
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      const response = await loginAPI(email, password);
+      const { data } = response;
       
-      setUser(mockUser);
-      setIsAuthenticated(true);
-
-      return { success: true, user: mockUser };
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        setToken(data.token);
+        setUser(data.user);
+        return { success: true };
+      } else {
+        return {
+          success: false,
+          error: data.message || "Login failed",
+        };
+      }
     } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message || "Login failed",
+      };
     }
   };
 
-  const register = async (name, email, password) => {
+  // REGISTER
+  const register = async (formData) => {
     try {
-      const mockUser = {
-        id: '1',
-        name: name,
-        email: email,
-        level: 1,
-        xp: 0,
-        achievements: [],
-        rank: null
-      };
-
-      const mockToken = 'mock-jwt-token-' + Date.now();
-
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      const response = await registerAPI(formData);
+      const { data } = response;
       
-      setUser(mockUser);
-      setIsAuthenticated(true);
-
-      return { success: true, user: mockUser };
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        setToken(data.token);
+        setUser(data.user);
+        return { success: true };
+      } else {
+        return {
+          success: false,
+          error: data.message || "Registration failed",
+        };
+      }
     } catch (error) {
-      console.error('Register error:', error);
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message || "Registration failed",
+      };
     }
   };
 
+  // LOGOUT
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setToken(null);
     setUser(null);
-    setIsAuthenticated(false);
   };
 
+  // UPDATE USER GLOBAL (XP, ecoScore, level, etc.)
   const updateUser = (updates) => {
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    const updated = { ...user, ...updates };
+    setUser(updated);
+    localStorage.setItem("user", JSON.stringify(updated));
   };
 
-  const value = {
-    user,
-    loading,
-    isAuthenticated,
-    login,
-    register,
-    logout,
-    updateUser
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        loading, 
+        token,
+        login, 
+        register, 
+        logout, 
+        updateUser,
+        isAuthenticated: !!user && !!token
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export default AuthContext;

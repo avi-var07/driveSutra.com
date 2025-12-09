@@ -155,7 +155,7 @@ export default function Home() {
                 {/* CTA Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 pt-4 hero-fade-5">
                   <Link 
-                    to="/register" 
+                    to="/auth" 
                     className="group px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-lg shadow-emerald-900/30 hover:shadow-emerald-900/50 hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2"
                   >
                     <BsFillTreeFill className="group-hover:scale-110 transition-transform" />

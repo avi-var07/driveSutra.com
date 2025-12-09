@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
+import { sendOTP, verifyOTP, registerAPI } from '../../services/authService';
 import { 
   FaUser, 
   FaEnvelope, 
@@ -14,11 +15,13 @@ import {
 const RegisterForm = () => {
   const [step, setStep] = useState(1); // 1: Details, 2: OTP, 3: Success
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,8 +37,12 @@ const RegisterForm = () => {
   };
 
   const validateForm = () => {
-    if (!formData.name.trim()) {
-      setError('Name is required');
+    if (!formData.firstName.trim()) {
+      setError('First name is required');
+      return false;
+    }
+    if (!formData.lastName.trim()) {
+      setError('Last name is required');
       return false;
     }
     if (!formData.email.trim()) {
@@ -54,6 +61,10 @@ const RegisterForm = () => {
       setError('Passwords do not match');
       return false;
     }
+    if (!termsAccepted) {
+      setError('Please accept the Terms and Conditions');
+      return false;
+    }
     return true;
   };
 
@@ -64,23 +75,15 @@ const RegisterForm = () => {
     setError('');
 
     try {
-      // API call to send OTP via nodemailer
-      const response = await fetch('http://localhost:5000/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
+      const response = await sendOTP(formData.email);
+      if (response.data.success) {
         setOtpSent(true);
         setStep(2);
       } else {
-        setError(data.message || 'Failed to send OTP');
+        setError(response.data.message || 'Failed to send OTP');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(err.response?.data?.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -116,28 +119,17 @@ const RegisterForm = () => {
     setError('');
 
     try {
-      // API call to verify OTP
-      const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: formData.email,
-          otp: otpCode 
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
+      const response = await verifyOTP(formData.email, otpCode);
+      if (response.data.success) {
         setOtpVerified(true);
         setStep(3);
         // Proceed to registration
         await handleRegister();
       } else {
-        setError(data.message || 'Invalid OTP');
+        setError(response.data.message || 'Invalid OTP');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(err.response?.data?.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -147,33 +139,28 @@ const RegisterForm = () => {
     setLoading(true);
 
     try {
-      // API call to register user with JWT
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password
-        })
+      const response = await registerAPI({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store JWT token
-        localStorage.setItem('token', data.token);
+      if (response.data.success) {
+        // Store token and user
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
         
         // Simulate success for 2 seconds before redirect
         setTimeout(() => {
           navigate('/dashboard');
         }, 2000);
       } else {
-        setError(data.message || 'Registration failed');
+        setError(response.data.message || 'Registration failed');
         setStep(1);
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(err.response?.data?.message || 'Network error. Please try again.');
       setStep(1);
     } finally {
       setLoading(false);
@@ -265,7 +252,7 @@ const RegisterForm = () => {
               }}
               className="space-y-5"
             >
-              {/* Name Field */}
+              {/* First Name Field */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -273,16 +260,37 @@ const RegisterForm = () => {
               >
                 <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                   <FaUser className="text-emerald-400" />
-                  Full Name
+                  First Name
                 </label>
                 <input
                   type="text"
-                  name="name"
-                  value={formData.name}
+                  name="firstName"
+                  value={formData.firstName}
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
-                  placeholder="John Doe"
+                  placeholder="John"
+                />
+              </motion.div>
+
+              {/* Last Name Field */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+              >
+                <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                  <FaUser className="text-emerald-400" />
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
+                  placeholder="Doe"
                 />
               </motion.div>
 
@@ -350,7 +358,43 @@ const RegisterForm = () => {
                 />
               </motion.div>
 
-              {/* Submit Button */}
+            {/* Terms and Conditions Checkbox */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 }}
+              className="flex items-start gap-3"
+            >
+              <input
+                type="checkbox"
+                id="terms"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-1 w-5 h-5 rounded border-2 border-emerald-800/50 bg-emerald-950/30 cursor-pointer accent-emerald-500 focus:ring-2 focus:ring-emerald-500/50"
+              />
+              <label htmlFor="terms" className="text-sm text-slate-400 cursor-pointer">
+                I agree to the{' '}
+                <a 
+                  href="/terms" 
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Terms and Conditions
+                </a>
+                {' '}and{' '}
+                <a 
+                  href="/privacy" 
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Privacy Policy
+                </a>
+              </label>
+            </motion.div>
+
+            {/* Submit Button */}
               <motion.button
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -406,12 +450,46 @@ const RegisterForm = () => {
 
               {/* OTP Input Fields */}
               <div className="flex gap-2 justify-center">
+            {/* Terms and Conditions Checkbox */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 }}
+              className="flex items-start gap-3"
+            >
+              <input
+                type="checkbox"
+                id="terms"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-1 w-5 h-5 rounded border-2 border-emerald-800/50 bg-emerald-950/30 cursor-pointer accent-emerald-500 focus:ring-2 focus:ring-emerald-500/50"
+              />
+              <label htmlFor="terms" className="text-sm text-slate-400 cursor-pointer">
+                I agree to the{' '}
+                <a 
+                  href="/terms" 
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Terms and Conditions
+                </a>
+                {' '}and{' '}
+                <a 
+                  href="/privacy" 
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Privacy Policy
+                </a>
+              </label>
+            </motion.div>
                 {otp.map((digit, index) => (
                   <motion.input
                     key={index}
                     id={`otp-${index}`}
                     type="text"
-                    maxLength={1}
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
@@ -502,7 +580,7 @@ const RegisterForm = () => {
                 transition={{ delay: 0.4 }}
                 className="text-slate-400 mb-6"
               >
-                Welcome to driveSutra.com, {formData.name}!
+                Welcome to driveSutra.com, {formData.firstName}!
               </motion.p>
 
               <motion.div
@@ -535,7 +613,7 @@ const RegisterForm = () => {
           className="mt-6 text-center text-slate-300"
         >
           Already have an account?{' '}
-          <Link to="/login" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors duration-300">
+          <Link to="/auth" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors duration-300">
             Sign in
           </Link>
         </motion.p>

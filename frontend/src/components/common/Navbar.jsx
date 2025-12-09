@@ -29,7 +29,7 @@ export default function Navbar() {
           {/* Desktop CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
             <Link 
-              to="/login" 
+              to="/auth" 
               className="group px-5 py-2.5 rounded-lg border border-emerald-700/40 bg-emerald-950/30 text-slate-200 font-medium hover:bg-emerald-950/50 hover:border-emerald-600/60 hover:text-emerald-300 transition-all duration-300 backdrop-blur-sm"
             >
               <span className="relative">
@@ -76,7 +76,7 @@ export default function Navbar() {
 
               <div className="mt-3 pt-3 border-t border-emerald-800/30 flex flex-col gap-2">
                 <Link 
-                  to="/login" 
+                  to="/auth" 
                   onClick={() => setOpen(false)}
                   className="text-center px-4 py-2.5 rounded-lg border border-emerald-700/40 bg-emerald-950/30 text-slate-200 font-medium hover:bg-emerald-950/50 hover:border-emerald-600/60 transition-all duration-300"
                 >
