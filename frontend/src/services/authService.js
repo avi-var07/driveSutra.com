@@ -11,3 +11,9 @@ export const sendOTP = (email) =>
 
 export const verifyOTP = (email, otp) =>
   api.post("/auth/verify-otp", { email, otp });
+
+export const changePasswordAPI = (oldPassword, newPassword) =>
+  api.post("/auth/change-password", { oldPassword, newPassword });
+
+export const updateProfileAPI = (profile) =>
+  api.post("/auth/update-profile", profile);

@@ -1,5 +1,6 @@
 import express from "express";
-import { sendOtp, verifyOtp, register, login } from "../controllers/authController.js";
+import { sendOtp, verifyOtp, register, login, forgotPassword, verifyForgotOtp, resetPassword, changePassword, updateProfile } from "../controllers/authController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -14,5 +15,14 @@ router.post("/register", register);
 
 // Route for logging in
 router.post("/login", login);
+
+// Forgot password routes
+router.post("/forgot-password", forgotPassword);
+router.post("/verify-forgot-otp", verifyForgotOtp);
+router.post("/reset-password", resetPassword);
+
+// Protected change password route
+router.post("/change-password", protect, changePassword);
+router.post("/update-profile", protect, updateProfile);
 
 export default router;
