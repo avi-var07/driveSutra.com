@@ -9,6 +9,7 @@ import AuthPage from "./pages/AuthPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import EcoDriveMap from "./components/EcoDriveMap";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import NewTripPage from "./pages/NewTrip";
 
 // Small placeholder used for routes we don't want to import heavy components for now
 const RoutesPlaceholder = ({ name }) => <div className="text-white p-20 text-4xl">{name} Page Placeholder</div>;
@@ -51,6 +52,7 @@ function App() {
 
         {/* App pages referenced by Navbar */}
         <Route path="/trips" element={<div className="text-white p-20 text-4xl"><RoutesPlaceholder name="Trips" /></div>} />
+        <Route path="/trip/new" element={<ProtectedRoute><NewTripPage /></ProtectedRoute>} />
         <Route path="/challenges" element={<div className="text-white p-20 text-4xl"><RoutesPlaceholder name="Challenges" /></div>} />
         <Route path="/forest" element={<div className="text-white p-20 text-4xl"><RoutesPlaceholder name="Forest" /></div>} />
 

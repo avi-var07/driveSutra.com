@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { changePasswordAPI, updateProfileAPI } from "../services/authService";
 
 const LinkedInIcon = ({ className = "w-5 h-5", ...props }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} {...props}>
@@ -6,112 +8,223 @@ const LinkedInIcon = ({ className = "w-5 h-5", ...props }) => (
   </svg>
 );
 
-export default function Profile() {
+
+function ProfileHeader() {
+  const { user, updateUser } = useAuth();
+  const [editMode, setEditMode] = useState(false);
+  const [firstName, setFirstName] = useState(user?.firstName || "");
+  const [lastName, setLastName] = useState(user?.lastName || "");
+  const [avatar, setAvatar] = useState(user?.avatar || "");
+  const [saving, setSaving] = useState(false);
+
+  const initials = `${(user?.firstName || "")[0] || ""}${(user?.lastName || "")[0] || ""}`.toUpperCase();
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await updateProfileAPI({ firstName, lastName, avatar });
+      if (res.data?.success) {
+        updateUser(res.data.user);
+        setEditMode(false);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <>
-      {/* scoped background + UI styles (no global body changes) */}
-      <style>{`
-        .profile-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: linear-gradient(to bottom, #0b0b2b, #1b2735 70%, #090a0f); }
-        .stars { position: absolute; width: 2px; height: 2px; background: transparent;
-          box-shadow:
-            2vw 5vh 2px white, 6vw 12vh 1px white, 10vw 8vh 2px white,
-            15vw 15vh 1px white, 22vw 22vh 1px white, 28vw 12vh 2px white,
-            32vw 32vh 1px white, 38vw 18vh 2px white, 42vw 35vh 1px white;
-          animation: twinkle 8s infinite linear;
-        }
-        .stars::after { content: ""; position: absolute; width: 2px; height: 2px;
-          box-shadow: 3vw 18vh 1px white, 8vw 12vh 2px white, 12vw 22vh 1px white, 16vw 18vh 1px white;
-          animation: twinkle 6s infinite linear reverse;
-        }
-        @keyframes twinkle { 0%,100%{opacity:0.95}50%{opacity:0.45} }
-        .shooting-star { position:absolute; width:120px; height:2px; background: linear-gradient(90deg, white, transparent); animation: shoot 3s infinite ease-in; opacity:0.95; }
-        .shooting-star.s1{ top:12%; left:-10vw; animation-delay:0s; }
-        .shooting-star.s2{ top:30%; left:-15vw; animation-delay:0.9s; }
-        .shooting-star.s3{ top:50%; left:-20vw; animation-delay:1.8s; }
-        @keyframes shoot { 0%{transform:translateX(-10vw) rotate(25deg);opacity:1}100%{transform:translateX(120vw) translateY(40vh) rotate(25deg);opacity:0} }
+      <div
+        className="w-28 h-28 rounded-2xl flex items-center justify-center text-black font-extrabold text-xl"
+        style={{ background: "linear-gradient(135deg,#34d399,#60a5fa)" }}
+      >
+        {avatar ? (
+          <img src={avatar} alt="avatar" className="w-28 h-28 object-cover rounded-2xl" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-black font-extrabold text-2xl">
+            {initials}
+          </div>
+        )}
+      </div>
 
+      {!editMode ? (
+        <>
+          <h2 className="text-2xl font-semibold">
+            {user?.firstName} {user?.lastName}
+          </h2>
+          <div className="text-sm muted">{user?.email} • Level: {user?.level || 1}</div>
+
+          <p className="text-sm text-center text-gray-300 mt-2 px-4">
+            Driving towards a greener future with smart habits.
+          </p>
+
+          <div className="w-full grid grid-cols-3 gap-4 text-center mt-4">
+            <div>
+              <div className="text-lg font-extrabold">{user?.ecoScore ?? 0}</div>
+              <div className="text-xs muted">Eco Score</div>
+            </div>
+            <div>
+              <div className="text-lg font-extrabold">—</div>
+              <div className="text-xs muted">Trips</div>
+            </div>
+            <div>
+              <div className="text-lg font-extrabold">—</div>
+              <div className="text-xs muted">KM Driven</div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex gap-4">
+            <button className="cta" onClick={() => setEditMode(true)}>Edit Profile</button>
+            <button
+              className="px-4 py-2 rounded-lg border border-white/10 text-gray-300"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              Settings
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="w-full mt-4 space-y-3">
+          <div>
+            <label className="text-sm muted block mb-1">First Name</label>
+            <input className="glass-input" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="text-sm muted block mb-1">Last Name</label>
+            <input className="glass-input" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="text-sm muted block mb-1">Avatar URL</label>
+            <input
+              className="glass-input"
+              value={avatar}
+              onChange={(e) => setAvatar(e.target.value)}
+              placeholder="https://..."
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button className="cta" onClick={save} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              className="px-4 py-2 rounded-lg border border-white/10 text-gray-300"
+              onClick={() => setEditMode(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+export default function Profile() {
+  const { user, updateUser } = useAuth();
+  const [firstName, setFirstName] = useState(user?.firstName || "");
+  const [lastName, setLastName] = useState(user?.lastName || "");
+  const [avatar, setAvatar] = useState(user?.avatar || "");
+  const [saving, setSaving] = useState(false);
+  const [pwOld, setPwOld] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwMsg, setPwMsg] = useState(null);
+
+  const handleSaveProfile = async () => {
+    try {
+      setSaving(true);
+      const res = await updateProfileAPI({ firstName, lastName, avatar });
+
+      if (res.data?.success) {
+        updateUser(res.data.user);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setSaving(false);
+  };
+
+  const handleChangePassword = async () => {
+    setPwMsg(null);
+    try {
+      const res = await changePasswordAPI(pwOld, pwNew);
+
+      if (res.data?.success) {
+        setPwMsg({ ok: true, text: res.data.message });
+        setPwOld("");
+        setPwNew("");
+      } else {
+        setPwMsg({ ok: false, text: res.data?.message });
+      }
+    } catch (err) {
+      setPwMsg({ ok: false, text: err.response?.data?.message || err.message });
+    }
+  };
+
+  return (
+    <>
+      {/* BACKGROUND CSS + STAR EFFECT */}
+      <style>{`
+        .profile-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden;
+          background: linear-gradient(to bottom, #0b0b2b, #1b2735 70%, #090a0f); }
+        .stars { position: absolute; width: 2px; height: 2px;
+          box-shadow: 2vw 5vh 2px white, 6vw 12vh 1px white, 10vw 8vh 2px white,
+          15vw 15vh 1px white, 22vw 22vh 1px white, 28vw 12vh 2px white,
+          32vw 32vh 1px white, 38vw 18vh 2px white, 42vw 35vh 1px white;
+          animation: twinkle 8s infinite linear; }
         .floating { animation: floatSmooth 7s ease-in-out infinite; }
-        @keyframes floatSmooth { 0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)} }
-        .glass { background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+        .glass { background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); backdrop-filter:blur(14px); }
         .elevated { box-shadow:0 24px 60px rgba(1,6,23,0.7); border-radius:16px; }
         .cta { background: linear-gradient(90deg,#34d399,#60a5fa); color:#000; padding:10px 16px; border-radius:10px; font-weight:700; }
         .muted { color:#bfc7d1; }
         .glass-input { width:100%; padding:12px 14px; border-radius:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.04); color:#e6eef8; }
       `}</style>
 
-      {/* fixed background layer (stars + shooting) */}
       <div className="profile-bg" aria-hidden>
         <div className="stars" />
-        <div className="shooting-star s1" />
-        <div className="shooting-star s2" />
-        <div className="shooting-star s3" />
       </div>
 
-      {/* MAIN content above background */}
+      {/* MAIN UI */}
       <main className="w-full min-h-screen relative z-10 flex items-start justify-center px-6 pt-28 pb-24 text-white">
         <div
           className="w-full max-w-6xl p-10 glass rounded-2xl elevated floating grid grid-cols-1 lg:grid-cols-3 gap-10"
-          style={{ boxShadow: "0 0 35px rgba(255,255,255,0.25), 0 0 70px rgba(255,255,255,0.15)" }}
         >
           {/* LEFT PROFILE CARD */}
           <section className="flex flex-col items-center gap-5 p-8 rounded-xl glass elevated">
-            <div className="w-28 h-28 rounded-2xl flex items-center justify-center text-black font-extrabold text-xl"
-              style={{ background:"linear-gradient(135deg,#34d399,#60a5fa)" }}>
-              AV
-            </div>
-
-            <h2 className="text-2xl font-semibold">Aman Verma</h2>
-            <div className="text-sm muted">EcoDrive User • Level: Eco Expert</div>
-
-            <p className="text-sm text-center text-gray-300 mt-2 px-4">
-              Driving towards a greener future with smart habits.
-            </p>
-
-            <div className="w-full grid grid-cols-3 gap-4 text-center mt-4">
-              <div><div className="text-lg font-extrabold">92</div><div className="text-xs muted">Eco Score</div></div>
-              <div><div className="text-lg font-extrabold">1.2K</div><div className="text-xs muted">Trips</div></div>
-              <div><div className="text-lg font-extrabold">24,560</div><div className="text-xs muted">KM Driven</div></div>
-            </div>
-
-            <div className="w-full grid grid-cols-2 gap-4 mt-4">
-              <div className="text-center">
-                <div className="text-lg font-extrabold">1.8T</div>
-                <div className="text-xs muted">CO₂ Saved</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-extrabold">87</div>
-                <div className="text-xs muted">Trees Equivalent</div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-4">
-              <a className="cta">Edit Profile</a>
-              <button className="px-4 py-2 rounded-lg border border-white/10 text-gray-300">Settings</button>
-            </div>
-
-            <div className="flex items-center gap-3 mt-4">
-              <LinkedInIcon className="hover:text-blue-400" />
-              <span className="muted text-sm">website.example</span>
-            </div>
+            <ProfileHeader />
           </section>
 
           {/* RIGHT SECTION */}
           <section className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-10">
 
-            {/* DRIVING BEHAVIOR */}
+            {/* CHANGE PASSWORD */}
             <div className="p-8 rounded-xl glass elevated">
-              <h3 className="font-semibold text-lg">Driving Behavior Insights</h3>
-              <p className="text-sm text-gray-300 mt-2">Your eco performance metrics.</p>
+              <h3 className="font-semibold text-lg">Change Password</h3>
 
-              <ul className="mt-4 space-y-2 text-sm muted">
-                <li>• Smooth Acceleration: 89%</li>
-                <li>• Smooth Braking: 92%</li>
-                <li>• Speed Stability: Excellent</li>
-                <li>• Idling Time: 4%</li>
-                <li>• Aggressive Events: 3 this week</li>
-              </ul>
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="text-sm muted mb-1 block">Current Password</label>
+                  <input type="password" className="glass-input" value={pwOld} onChange={(e) => setPwOld(e.target.value)} />
+                </div>
 
-              <button className="cta mt-5">View Full Report</button>
+                <div>
+                  <label className="text-sm muted mb-1 block">New Password</label>
+                  <input type="password" className="glass-input" value={pwNew} onChange={(e) => setPwNew(e.target.value)} />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button className="cta" onClick={handleChangePassword}>Save Password</button>
+                  {pwMsg && (
+                    <span className={pwMsg.ok ? "text-green-400" : "text-red-400"}>
+                      {pwMsg.text}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* VEHICLE DETAILS */}
@@ -121,18 +234,13 @@ export default function Profile() {
               <div className="mt-4 space-y-4">
                 <div>
                   <label className="text-sm muted block mb-1">Vehicle Name</label>
-                  <input className="glass-input" value="Fortuner " readOnly />
+                  <input className="glass-input" value="Fortuner" readOnly />
                 </div>
 
                 <div>
                   <label className="text-sm muted block mb-1">Vehicle Type</label>
                   <input className="glass-input" value="Diesel" readOnly />
                 </div>
-
-                {/* <div>
-                  <label className="text-sm muted block mb-1">Range</label>
-                  <input className="glass-input" value="540 km" readOnly />
-                </div> */}
 
                 <div>
                   <label className="text-sm muted block mb-1">Efficiency Score</label>
@@ -147,29 +255,6 @@ export default function Profile() {
                 <div>
                   <label className="text-sm muted block mb-1">Last Service</label>
                   <input className="glass-input" value="12 Oct 2025" readOnly />
-                </div>
-              </div>
-            </div>
-
-            {/* SUSTAINABILITY SUMMARY */}
-            <div className="p-8 rounded-xl glass elevated md:col-span-2">
-              <h3 className="font-semibold text-lg">Sustainability Summary</h3>
-              <p className="text-sm text-gray-300 mt-2">Eco impact metrics.</p>
-
-              <div className="mt-6 grid grid-cols-3 gap-6 text-center">
-                <div className="p-5 bg-white/5 rounded-lg">
-                  <div className="text-xl font-extrabold">450 kg</div>
-                  <div className="text-xs muted">Carbon Saved</div>
-                </div>
-
-                <div className="p-5 bg-white/5 rounded-lg">
-                  <div className="text-xl font-extrabold">320</div>
-                  <div className="text-xs muted">Charging Sessions</div>
-                </div>
-
-                <div className="p-5 bg-white/5 rounded-lg">
-                  <div className="text-xl font-extrabold">1.2K</div>
-                  <div className="text-xs muted">Eco Trip Count</div>
                 </div>
               </div>
             </div>

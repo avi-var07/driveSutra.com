@@ -1,18 +1,19 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaLeaf } from "react-icons/fa6";
+import { FaShieldAlt, FaTrophy, FaRoad } from 'react-icons/fa';
 import { motion } from "motion/react";
 import { useAuth } from "../../context/AuthContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const navigate = useNavigate();
 
   return (
     <>
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-gradient-to-r from-[#0d1f1a]/95 via-[#112820]/95 to-[#0a1d16]/95 border-b border-emerald-800/30 shadow-lg shadow-emerald-950/20">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-50 backdrop-blur bg-emerald-950/75 border-b border-emerald-800/20">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           {/* Logo */}
           <div className="flex items-center gap-3">
             <Link to="/" className="group flex items-center gap-3">
@@ -21,55 +22,38 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-6 ml-4">
             <NavLink to="/dashboard">Dashboard</NavLink>
-            <NavLink to="/features">Features</NavLink>
+            <NavLink to="/trip/new">Start Trip</NavLink>
             <NavLink to="/trips">My Trips</NavLink>
             <NavLink to="/challenges">Challenges</NavLink>
+            <NavLink to="/achievements">Achievements</NavLink>
             <NavLink to="/forest">Forest</NavLink>
           </nav>
 
           {/* Desktop CTA Buttons */}
-          <div className="hidden md:flex items-center gap-3">
-            {!isAuthenticated ? (
+          <div className="hidden md:flex items-center gap-3 ml-auto">
+            {isAuthenticated ? (
               <>
-                <Link 
-                  to="/auth" 
-                  className="group px-5 py-2.5 rounded-lg border border-emerald-700/40 bg-emerald-950/30 text-slate-200 font-medium hover:bg-emerald-950/50 hover:border-emerald-600/60 hover:text-emerald-300 transition-all duration-300 backdrop-blur-sm"
-                >
-                  <span className="relative">
-                    Log In
-                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-400 group-hover:w-full transition-all duration-300"></span>
-                  </span>
-                </Link>
-                <Link 
-                  to="/eco-map" 
-                  className="group px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold shadow-lg shadow-emerald-900/30 hover:shadow-emerald-900/50 hover:scale-105 transition-all duration-300 flex items-center gap-2"
-                >
-                  <FaLeaf className="text-sm group-hover:rotate-12 transition-transform duration-300" />
-                  Start Eco Trip
-                </Link>
+                <div className="hidden lg:flex items-center gap-2 bg-emerald-900/20 border border-emerald-800/20 rounded-full px-3 py-1 text-sm text-slate-200">
+                  <span className="text-slate-300 mr-2">Eco</span>
+                  <span className="font-semibold">{user?.ecoScore ?? '—'}</span>
+                  <span className="mx-2 text-slate-400">•</span>
+                  <span className="text-slate-300">XP</span>
+                  <span className="font-semibold">{user?.xp ?? 0}</span>
+                  <span className="mx-2 text-slate-400">•</span>
+                  <span className="text-slate-300">Lv</span>
+                  <span className="font-semibold">{user?.level ?? '—'}</span>
+                </div>
+
+                <Link to="/profile" className="px-3 py-1 rounded-md text-slate-200 hover:bg-emerald-950/20">Profile</Link>
+                <Link to="/trip/new" className="px-3 py-1 rounded-md bg-emerald-600 text-white font-medium">Start Trip</Link>
+                <button onClick={() => { logout(); navigate('/'); }} className="px-3 py-1 rounded-md bg-red-600 text-white">Logout</button>
               </>
             ) : (
               <>
-                <Link 
-                  to="/dashboard" 
-                  className="group px-5 py-2.5 rounded-lg border border-emerald-700/40 bg-emerald-950/30 text-slate-200 font-medium hover:bg-emerald-950/50 hover:border-emerald-600/60 hover:text-emerald-300 transition-all duration-300 backdrop-blur-sm"
-                >
-                  <span className="relative">
-                    Dashboard
-                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-400 group-hover:w-full transition-all duration-300"></span>
-                  </span>
-                </Link>
-                <button
-                  onClick={() => {
-                    logout();
-                    navigate("/");
-                  }}
-                  className="group px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold shadow-lg shadow-red-900/30 hover:shadow-red-900/50 hover:scale-105 transition-all duration-300"
-                >
-                  Logout
-                </button>
+                <Link to="/auth" className="px-3 py-1 rounded-md border border-emerald-700/30 text-slate-200">Log In</Link>
+                <Link to="/trip/new" className="px-3 py-1 rounded-md bg-emerald-600 text-white font-medium">Start Trip</Link>
               </>
             )}
           </div>
