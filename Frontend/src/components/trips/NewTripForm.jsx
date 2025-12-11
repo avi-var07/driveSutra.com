@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { getRoute } from '../../services/tripService';
 import { FaBus, FaBicycle, FaCar } from 'react-icons/fa';
+import { createTrip } from '../../services/tripService';
 
 const modeLabels = {
   PUBLIC: { icon: <FaBus />, label: 'Public Transport' },
@@ -15,11 +16,13 @@ export default function NewTripForm() {
   const [routeInfo, setRouteInfo] = useState(null);
   const [selectedMode, setSelectedMode] = useState('PUBLIC');
   const [error, setError] = useState('');
+  const [savedTrip, setSavedTrip] = useState(null);
 
   // Helpers: parse simple "lat,lng" input into { lat, lng }
   const parseInput = (s) => {
     if (!s) return null;
-    const parts = s.split(',').map((p) => p.trim());
+    if (typeof s === 'object' && s.lat !== undefined && s.lng !== undefined) return s;
+    const parts = String(s).split(',').map((p) => p.trim());
     if (parts.length !== 2) return null;
     const lat = parseFloat(parts[0]);
     const lng = parseFloat(parts[1]);
@@ -40,6 +43,11 @@ export default function NewTripForm() {
     try {
       const res = await getRoute({ start: s, end: e, mode: selectedMode });
       setRouteInfo(res);
+      // Recommend mode based on distance
+      const dist = Number(res.distanceKm) || 0;
+      if (dist <= 3) setSelectedMode('CYCLE');
+      else if (dist > 30) setSelectedMode('CAR');
+      else setSelectedMode('PUBLIC');
     } catch (err) {
       setError(err?.response?.data?.message || err.message || 'Route lookup failed');
     } finally {
@@ -88,8 +96,24 @@ export default function NewTripForm() {
           <p>Distance: <strong>{Number(routeInfo.distanceKm).toFixed(2)} km</strong></p>
           <p>Estimated time: <strong>{Number(routeInfo.durationMinutes).toFixed(1)} min</strong></p>
           <div className="mt-3">
-            <button className="px-4 py-2 bg-teal-500 text-white rounded">Confirm Trip</button>
+            <button className="px-4 py-2 bg-teal-500 text-white rounded" onClick={async () => {
+              try {
+                const payload = { start: parseInput(start), end: parseInput(end), mode: selectedMode, distanceKm: routeInfo.distanceKm, durationMinutes: routeInfo.durationMinutes, geometry: routeInfo.geometry };
+                const res = await createTrip(payload);
+                if (res?.success) {
+                  setSavedTrip(res.trip);
+                }
+              } catch (e) {
+                console.error('save trip', e);
+              }
+            }}>Confirm Trip</button>
           </div>
+        </div>
+      )}
+
+      {savedTrip && (
+        <div className="mt-4 p-3 rounded bg-green-900/20">
+          Trip saved — ID: <strong>{savedTrip._id}</strong>
         </div>
       )}
     </div>
