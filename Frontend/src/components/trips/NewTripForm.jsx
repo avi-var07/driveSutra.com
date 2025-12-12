@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getRoute, createTrip } from '../../services/tripService'
+import { getRouteOptions, createTrip } from '../../services/tripService'
 import { FaBus, FaBicycle, FaCar } from 'react-icons/fa'
 import { MdLocationOn, MdCheckCircle, MdError } from 'react-icons/md'
 import LocationPicker from './LocationPicker'
@@ -28,14 +28,15 @@ export default function NewTripForm() {
   const [start, setStart] = useState(null)
   const [end, setEnd] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [routeInfo, setRouteInfo] = useState(null)
-  const [selectedMode, setSelectedMode] = useState('PUBLIC')
+  const [routeOptions, setRouteOptions] = useState(null)
+  const [selectedOption, setSelectedOption] = useState(null)
+  const [weatherData, setWeatherData] = useState(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [savedTrip, setSavedTrip] = useState(null)
   const [activeLocationPicker, setActiveLocationPicker] = useState(null)
 
-  const handleCalculateDistance = async () => {
+  const handleGetRouteOptions = async () => {
     setError('')
     setSuccess('')
     if (!start || !end) {
@@ -45,73 +46,71 @@ export default function NewTripForm() {
 
     setLoading(true)
     try {
-      // Calculate distance using default mode first (PUBLIC Transport)
-      const res = await getRoute({ start, end, mode: 'PUBLIC' })
-      setRouteInfo(res)
-      setSuccess('Distance calculated! Now select your preferred travel mode.')
+      const startLocation = { lat: start.lat, lng: start.lng, address: start.name };
+      const endLocation = { lat: end.lat, lng: end.lng, address: end.name };
       
-      // Auto-recommend mode based on distance
-      const dist = Number(res.distanceKm) || 0
-      if (dist <= 3) {
-        setSelectedMode('CYCLE')
-      } else if (dist > 30) {
-        setSelectedMode('CAR')
-      } else {
-        setSelectedMode('PUBLIC')
+      const res = await getRouteOptions(startLocation, endLocation)
+      
+      if (res.success) {
+        setRouteOptions(res.options)
+        setWeatherData(res.weather)
+        setSuccess('Route options calculated! Select your preferred travel mode.')
+        
+        // Auto-select the first available option
+        if (res.options.length > 0) {
+          setSelectedOption(res.options[0])
+        }
       }
 
       // Clear success message after 3s
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
-      setError(err?.response?.data?.message || err.message || 'Failed to calculate distance. Please try again.')
-      console.error('Distance calculation error:', err)
+      setError(err?.response?.data?.message || err.message || 'Failed to get route options. Please try again.')
+      console.error('Route options error:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleRecalculateRoute = async () => {
-    if (!routeInfo || !selectedMode) return
-    
-    setError('')
-    setLoading(true)
-    try {
-      const res = await getRoute({ start, end, mode: selectedMode })
-      setRouteInfo(res)
-      setSuccess('Route updated for selected mode!')
-      setTimeout(() => setSuccess(''), 2000)
-    } catch (err) {
-      setError('Failed to update route')
-    } finally {
-      setLoading(false)
-    }
+  const handleSelectOption = (option) => {
+    setSelectedOption(option)
+    setSuccess(`Selected ${option.mode} mode!`)
+    setTimeout(() => setSuccess(''), 2000)
   }
 
   const handleConfirmTrip = async () => {
+    if (!selectedOption) {
+      setError('Please select a travel mode')
+      return
+    }
+
     try {
       setLoading(true)
       const payload = {
-        start,
-        end,
-        mode: selectedMode,
-        distanceKm: routeInfo.distanceKm,
-        durationMinutes: routeInfo.durationMinutes,
-        geometry: routeInfo.geometry
+        startLocation: { lat: start.lat, lng: start.lng, address: start.name },
+        endLocation: { lat: end.lat, lng: end.lng, address: end.name },
+        mode: selectedOption.mode,
+        distanceKm: selectedOption.distanceKm,
+        etaMinutes: selectedOption.durationMinutes,
+        routeGeometry: selectedOption.geometry
       }
+      
       const res = await createTrip(payload)
       if (res?.success) {
         setSavedTrip(res.trip)
-        setSuccess('Trip saved successfully!')
-        // Reset form after 2s
+        setSuccess('Trip planned successfully! You can now start your journey.')
+        // Reset form after 3s
         setTimeout(() => {
           setStart(null)
           setEnd(null)
-          setRouteInfo(null)
+          setRouteOptions(null)
+          setSelectedOption(null)
           setSavedTrip(null)
-        }, 2000)
+          setWeatherData(null)
+        }, 3000)
       }
     } catch (err) {
-      setError(err?.response?.data?.message || 'Failed to save trip')
+      setError(err?.response?.data?.message || 'Failed to plan trip')
     } finally {
       setLoading(false)
     }
@@ -241,22 +240,51 @@ export default function NewTripForm() {
             )}
           </AnimatePresence>
 
-          {/* Get Distance Button */}
+          {/* Get Route Options Button */}
           <motion.div variants={itemVariants} className="mb-8">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={handleCalculateDistance}
+              onClick={handleGetRouteOptions}
               disabled={loading || !start || !end}
               className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold hover:shadow-lg hover:shadow-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
             >
-              {loading ? 'Calculating Distance...' : 'Calculate Distance'}
+              {loading ? 'Getting Route Options...' : 'Get Route Options'}
             </motion.button>
           </motion.div>
 
-          {/* Travel Mode Selection - Only show after distance calculated */}
+          {/* Weather Info */}
           <AnimatePresence>
-            {routeInfo && (
+            {weatherData && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="mb-6 p-4 rounded-xl bg-blue-500/10 border border-blue-500/30"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">
+                    {weatherData.condition === 'clear' ? '☀️' : 
+                     weatherData.condition === 'rain' ? '🌧️' : 
+                     weatherData.condition === 'cloudy' ? '☁️' : 
+                     weatherData.condition === 'snow' ? '❄️' : '🌤️'}
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold">
+                      {weatherData.temp}°C - {weatherData.description}
+                    </div>
+                    <div className="text-slate-400 text-sm">
+                      Weather conditions for your route
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Travel Mode Options - Only show after route options calculated */}
+          <AnimatePresence>
+            {routeOptions && (
               <motion.div
                 variants={itemVariants}
                 initial={{ opacity: 0, y: 20 }}
@@ -265,81 +293,95 @@ export default function NewTripForm() {
                 className="mb-8"
               >
                 <label className="block text-sm font-semibold text-slate-300 mb-4">
-                  Select Your Travel Mode
+                  Choose Your Travel Mode
                 </label>
-                <div className="grid grid-cols-3 gap-4">
-                  {Object.entries(modeLabels).map(([mode, { icon, label, color }]) => {
-                    // Determine recommendation based on distance
-                    const dist = Number(routeInfo.distanceKm) || 0
-                    let isRecommended = false
-                    if (dist <= 3 && mode === 'CYCLE') isRecommended = true
-                    else if (dist > 3 && dist <= 30 && mode === 'PUBLIC') isRecommended = true
-                    else if (dist > 30 && mode === 'CAR') isRecommended = true
-
-                    return (
-                      <motion.button
-                        key={mode}
-                        onClick={() => {
-                          setSelectedMode(mode)
-                          handleRecalculateRoute()
-                        }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className={`p-4 rounded-xl transition-all duration-300 ${
-                          selectedMode === mode
-                            ? `bg-gradient-to-br ${color} text-white shadow-lg shadow-emerald-500/30 border-2 border-white/20`
-                            : 'bg-slate-700/30 border-2 border-slate-600 text-slate-300 hover:border-slate-500'
-                        } ${isRecommended ? 'ring-2 ring-offset-2 ring-offset-slate-900 ring-yellow-400' : ''}`}
-                      >
-                        <div className="text-3xl mb-2">{icon}</div>
-                        <div className="text-xs font-medium text-center">{label}</div>
-                        {isRecommended && (
-                          <div className="text-xs font-bold mt-1 text-yellow-300">✨ Recommended</div>
-                        )}
-                      </motion.button>
-                    )
-                  })}
+                <div className="space-y-4">
+                  {routeOptions.map((option, index) => (
+                    <motion.button
+                      key={option.mode}
+                      onClick={() => handleSelectOption(option)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`w-full p-4 rounded-xl transition-all duration-300 text-left ${
+                        selectedOption?.mode === option.mode
+                          ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border-2 border-emerald-400 shadow-lg'
+                          : 'bg-slate-700/30 border-2 border-slate-600 hover:border-slate-500'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="text-3xl">{option.icon}</div>
+                          <div>
+                            <div className="font-semibold text-white">{option.mode}</div>
+                            <div className="text-sm text-slate-400">{option.ecoLabel}</div>
+                            {option.suggestedSpeedRange && (
+                              <div className="text-xs text-yellow-400">
+                                Suggested: {option.suggestedSpeedRange}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-emerald-400">
+                            {option.distanceKm.toFixed(1)} km
+                          </div>
+                          <div className="text-sm text-slate-400">
+                            {Math.round(option.durationMinutes)} min
+                          </div>
+                          <div className="text-sm font-semibold text-teal-400">
+                            EcoScore: {option.estimatedEcoScore}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.button>
+                  ))}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Route Info */}
+          {/* Selected Route Summary & Confirm */}
           <AnimatePresence>
-            {routeInfo && (
+            {selectedOption && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 className="space-y-6 p-6 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 border border-slate-600/50"
               >
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="text-center mb-4">
+                  <h3 className="text-lg font-bold text-white mb-2">Trip Summary</h3>
+                  <p className="text-slate-300 text-sm">
+                    Selected mode: <span className="font-semibold text-emerald-400">{selectedOption.mode}</span>
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-center">
-                    <div className="text-3xl font-bold text-emerald-400">
-                      {Number(routeInfo.distanceKm).toFixed(2)}
+                    <div className="text-2xl font-bold text-emerald-400">
+                      {selectedOption.distanceKm.toFixed(1)}
                     </div>
                     <div className="text-sm text-slate-400">Distance (km)</div>
                   </motion.div>
 
                   <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-center">
-                    <div className="text-3xl font-bold text-teal-400">
-                      {Number(routeInfo.durationMinutes).toFixed(0)}
+                    <div className="text-2xl font-bold text-teal-400">
+                      {Math.round(selectedOption.durationMinutes)}
                     </div>
                     <div className="text-sm text-slate-400">Est. Time (min)</div>
                   </motion.div>
 
                   <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-center">
-                    <div className="text-3xl font-bold text-blue-400">
-                      {modeLabels[selectedMode]?.eco || 0}
+                    <div className="text-2xl font-bold text-blue-400">
+                      {selectedOption.estimatedEcoScore}
                     </div>
-                    <div className="text-sm text-slate-400">Eco Score</div>
+                    <div className="text-sm text-slate-400">Est. EcoScore</div>
                   </motion.div>
-                </div>
 
-                <div className="text-center">
-                  <p className="text-slate-300 text-sm mb-4">
-                    Recommended mode: <span className="font-semibold text-emerald-400">{modeLabels[selectedMode].label}</span>
-                  </p>
+                  <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-center">
+                    <div className="text-2xl">{selectedOption.icon}</div>
+                    <div className="text-sm text-slate-400">{selectedOption.ecoLabel}</div>
+                  </motion.div>
                 </div>
 
                 {/* Confirm Trip Button */}
@@ -350,7 +392,7 @@ export default function NewTripForm() {
                   disabled={loading}
                   className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-teal-500 text-white font-semibold hover:shadow-lg hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                 >
-                  {loading ? 'Saving Trip...' : 'Confirm & Save Trip'}
+                  {loading ? 'Planning Trip...' : 'Plan This Trip'}
                 </motion.button>
               </motion.div>
             )}

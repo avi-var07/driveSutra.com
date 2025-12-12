@@ -4,10 +4,14 @@ import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// POST /api/trips/route
-router.post('/route', tripController.getRoute);
+// Get route options for all transport modes
+router.post('/route-options', tripController.getRouteOptions);
 
-// Create/persist trip (protected)
+// Trip management (all protected)
 router.post('/', protect, tripController.createTrip);
+router.post('/:tripId/start', protect, tripController.startTrip);
+router.post('/:tripId/complete', protect, tripController.completeTrip);
+router.get('/', protect, tripController.getUserTrips);
+router.get('/:tripId', protect, tripController.getTripDetails);
 
 export default router;
