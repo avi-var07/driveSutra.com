@@ -6,7 +6,7 @@ import LevelProgress from '../components/dashboard/LevelProgress';
 import RecentTrips from '../components/dashboard/RecentTrips';
 import EcoScoreCard from '../components/dashboard/EcoScoreCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import Navbar from '../components/common/Navbar';
+import { getDashboardStats } from '../services/userService';
 import { FaSync } from 'react-icons/fa';
 
 const Dashboard = () => {
@@ -41,86 +41,63 @@ const Dashboard = () => {
         setLoading(true);
       }
 
-      // In a real app, these would be actual API calls
-      // For now, we'll simulate with mock data
+      const response = await getDashboardStats();
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock data - Replace with actual API calls
-      const mockStats = {
-        totalTrips: 45,
-        totalDistance: 1234.5,
-        co2Saved: 245.8,
-        treesPlanted: 12
-      };
-
-      const mockUserData = {
-        level: user?.level || 5,
-        xp: user?.xp || 3450,
-        xpForNextLevel: 5000,
-        achievements: user?.achievements || [],
-        activeChallenges: 3,
-        rank: user?.rank || 142
-      };
-
-      const mockRecentTrips = [
-        {
-          _id: '1',
-          from: 'Home',
-          to: 'Office',
-          mode: 'bike',
-          distance: 8.5,
-          co2Saved: 2.3,
-          date: new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours ago
-        },
-        {
-          _id: '2',
-          from: 'Office',
-          to: 'Gym',
-          mode: 'walk',
-          distance: 1.2,
-          co2Saved: 0.5,
-          date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) // 1 day ago
-        },
-        {
-          _id: '3',
-          from: 'Home',
-          to: 'Mall',
-          mode: 'bus',
-          distance: 12.3,
-          co2Saved: 5.6,
-          date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) // 2 days ago
-        },
-        {
-          _id: '4',
-          from: 'Home',
-          to: 'Airport',
-          mode: 'train',
-          distance: 35.0,
-          co2Saved: 15.2,
-          date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) // 3 days ago
-        },
-        {
-          _id: '5',
-          from: 'Office',
-          to: 'Home',
-          mode: 'bike',
-          distance: 8.5,
-          co2Saved: 2.3,
-          date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000) // 4 days ago
-        }
-      ];
-
-      setDashboardData({
-        stats: mockStats,
-        userData: mockUserData,
-        recentTrips: mockRecentTrips
-      });
+      if (response.success) {
+        const { data } = response;
+        
+        setDashboardData({
+          stats: {
+            totalTrips: data.user.totalTrips,
+            totalDistance: data.user.totalDistance,
+            co2Saved: data.user.co2Saved,
+            treesPlanted: data.user.treesGrown
+          },
+          userData: {
+            level: data.user.level,
+            levelTitle: data.user.levelTitle,
+            xp: data.user.xp,
+            levelProgress: data.user.levelProgress,
+            ecoScore: data.user.ecoScore,
+            carbonCredits: data.user.carbonCredits,
+            currentStreak: data.user.currentStreak,
+            longestStreak: data.user.longestStreak,
+            achievements: data.achievements
+          },
+          recentTrips: data.recentTrips,
+          weekStats: data.weekStats
+        });
+      }
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      // You might want to show an error toast/notification here
+      // Fallback to empty data
+      setDashboardData({
+        stats: {
+          totalTrips: 0,
+          totalDistance: 0,
+          co2Saved: 0,
+          treesPlanted: 0
+        },
+        userData: {
+          level: 1,
+          levelTitle: 'Seedling',
+          xp: 0,
+          levelProgress: 0,
+          ecoScore: 0,
+          carbonCredits: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          achievements: { total: 0, recent: [] }
+        },
+        recentTrips: [],
+        weekStats: {
+          trips: 0,
+          distance: 0,
+          co2Saved: 0,
+          avgEcoScore: 0
+        }
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -152,7 +129,7 @@ const Dashboard = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-extrabold text-white">
-              Welcome back, {user?.name || 'User'}! 👋
+              Welcome back, {user?.firstName || 'User'}! 👋
             </h1>
             <p className="text-slate-300 mt-2">
               Here's your eco-friendly travel summary
@@ -200,11 +177,11 @@ const Dashboard = () => {
         {/* Quick Action Cards */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div 
-            onClick={() => navigate('/new-trip')}
+            onClick={() => navigate('/trip/new')}
             className="glass-card p-6 rounded-2xl backdrop-blur-md bg-emerald-950/20 border border-emerald-800/30 shadow-lg cursor-pointer hover:bg-emerald-950/30 hover:border-emerald-700/40 hover:-translate-y-1 transition-all duration-300"
           >
             <h3 className="text-lg font-bold mb-2 text-white">🚴 New Trip</h3>
-            <p className="text-sm text-slate-300">Record your latest eco-friendly journey</p>
+            <p className="text-sm text-slate-300">Plan your next eco-friendly journey</p>
           </div>
           <div 
             onClick={() => navigate('/challenges')}
