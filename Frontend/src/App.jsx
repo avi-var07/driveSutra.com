@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
 import Home from "./components/common/Home";
+import Navbar from './components/common/Navbar'
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard";
 import AuthPage from "./pages/AuthPage";
@@ -30,6 +31,7 @@ function App() {
 
   return (
     <div className="w-full min-h-screen relative font-sans bg-black overflow-hidden">
+      <Navbar />
       <Routes>
         {/* HOME PAGE */}
         <Route path="/" element={<Home />} />

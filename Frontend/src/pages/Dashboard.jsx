@@ -138,7 +138,6 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0d1f1a] via-[#112820] to-[#0a1d16] text-slate-100">
-        <Navbar />
         <div className="flex items-center justify-center h-screen">
           <LoadingSpinner color="white" size="lg" />
         </div>
@@ -148,8 +147,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0d1f1a] via-[#112820] to-[#0a1d16] text-slate-100 antialiased">
-      <Navbar />
-      
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
