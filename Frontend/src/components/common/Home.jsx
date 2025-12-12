@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import Navbar from "./Navbar";
+// Navbar provided globally via App.jsx
 import { Link } from "react-router-dom";
 import { FaCarRear, FaTrain, FaEarthAmericas, FaBicycle, FaLeaf, FaChartLine, FaUsers } from "react-icons/fa6";
 import { BsFillTreeFill } from "react-icons/bs";
@@ -76,9 +76,7 @@ export default function Home() {
         animate={{ opacity: isLoading ? 0 : 1 }}
         transition={{ duration: 0.5 }}
       >
-        {/* Header / Navbar */}
-        <Navbar />
-
+        {/* Header / Navbar (rendered globally in App.jsx) */}
       <main className="w-full">
         {/* Hero Section */}
         <section className="relative min-h-screen flex items-center px-6 py-24 overflow-hidden">

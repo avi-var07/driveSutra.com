@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Navbar from "../components/common/Navbar";
+// Navbar is provided globally via App.jsx
 import AuthBanner from "../components/auth/AuthBanner";
 import LoginForm from "../components/auth/LoginForm";
 import RegisterForm from "../components/auth/RegisterForm";
@@ -21,8 +21,6 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-[#041B1A] via-[#07211F] to-[#0A2A2A] text-white">
-      <Navbar />
-      
       <motion.div 
         initial="initial"
         animate="animate"

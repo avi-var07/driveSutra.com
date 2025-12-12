@@ -1,121 +1,403 @@
-import React, { useState } from 'react';
-import { getRoute } from '../../services/tripService';
-import { FaBus, FaBicycle, FaCar } from 'react-icons/fa';
-import { createTrip } from '../../services/tripService';
+import React, { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { getRoute, createTrip } from '../../services/tripService'
+import { FaBus, FaBicycle, FaCar } from 'react-icons/fa'
+import { MdLocationOn, MdCheckCircle, MdError } from 'react-icons/md'
+import LocationPicker from './LocationPicker'
 
 const modeLabels = {
-  PUBLIC: { icon: <FaBus />, label: 'Public Transport' },
-  CYCLE: { icon: <FaBicycle />, label: 'Cycle / Walk' },
-  CAR: { icon: <FaCar />, label: 'Car / Bike' }
-};
+  PUBLIC: { icon: <FaBus />, label: 'Public Transport', color: 'from-blue-500 to-blue-600', eco: 95 },
+  CYCLE: { icon: <FaBicycle />, label: 'Cycle / Walk', color: 'from-green-500 to-emerald-600', eco: 90 },
+  CAR: { icon: <FaCar />, label: 'Car / Bike', color: 'from-orange-500 to-red-600', eco: 60 }
+}
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+}
 
 export default function NewTripForm() {
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [routeInfo, setRouteInfo] = useState(null);
-  const [selectedMode, setSelectedMode] = useState('PUBLIC');
-  const [error, setError] = useState('');
-  const [savedTrip, setSavedTrip] = useState(null);
+  const [start, setStart] = useState(null)
+  const [end, setEnd] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [routeInfo, setRouteInfo] = useState(null)
+  const [selectedMode, setSelectedMode] = useState('PUBLIC')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [savedTrip, setSavedTrip] = useState(null)
+  const [activeLocationPicker, setActiveLocationPicker] = useState(null)
 
-  // Helpers: parse simple "lat,lng" input into { lat, lng }
-  const parseInput = (s) => {
-    if (!s) return null;
-    if (typeof s === 'object' && s.lat !== undefined && s.lng !== undefined) return s;
-    const parts = String(s).split(',').map((p) => p.trim());
-    if (parts.length !== 2) return null;
-    const lat = parseFloat(parts[0]);
-    const lng = parseFloat(parts[1]);
-    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
-    return { lat, lng };
-  };
-
-  const handleGetRoute = async () => {
-    setError('');
-    const s = parseInput(start);
-    const e = parseInput(end);
-    if (!s || !e) {
-      setError('Please enter start and end as "lat,lng"');
-      return;
+  const handleCalculateDistance = async () => {
+    setError('')
+    setSuccess('')
+    if (!start || !end) {
+      setError('Please select both start and end locations')
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
     try {
-      const res = await getRoute({ start: s, end: e, mode: selectedMode });
-      setRouteInfo(res);
-      // Recommend mode based on distance
-      const dist = Number(res.distanceKm) || 0;
-      if (dist <= 3) setSelectedMode('CYCLE');
-      else if (dist > 30) setSelectedMode('CAR');
-      else setSelectedMode('PUBLIC');
+      // Calculate distance using default mode first (PUBLIC Transport)
+      const res = await getRoute({ start, end, mode: 'PUBLIC' })
+      setRouteInfo(res)
+      setSuccess('Distance calculated! Now select your preferred travel mode.')
+      
+      // Auto-recommend mode based on distance
+      const dist = Number(res.distanceKm) || 0
+      if (dist <= 3) {
+        setSelectedMode('CYCLE')
+      } else if (dist > 30) {
+        setSelectedMode('CAR')
+      } else {
+        setSelectedMode('PUBLIC')
+      }
+
+      // Clear success message after 3s
+      setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
-      setError(err?.response?.data?.message || err.message || 'Route lookup failed');
+      setError(err?.response?.data?.message || err.message || 'Failed to calculate distance. Please try again.')
+      console.error('Distance calculation error:', err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  const handleRecalculateRoute = async () => {
+    if (!routeInfo || !selectedMode) return
+    
+    setError('')
+    setLoading(true)
+    try {
+      const res = await getRoute({ start, end, mode: selectedMode })
+      setRouteInfo(res)
+      setSuccess('Route updated for selected mode!')
+      setTimeout(() => setSuccess(''), 2000)
+    } catch (err) {
+      setError('Failed to update route')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirmTrip = async () => {
+    try {
+      setLoading(true)
+      const payload = {
+        start,
+        end,
+        mode: selectedMode,
+        distanceKm: routeInfo.distanceKm,
+        durationMinutes: routeInfo.durationMinutes,
+        geometry: routeInfo.geometry
+      }
+      const res = await createTrip(payload)
+      if (res?.success) {
+        setSavedTrip(res.trip)
+        setSuccess('Trip saved successfully!')
+        // Reset form after 2s
+        setTimeout(() => {
+          setStart(null)
+          setEnd(null)
+          setRouteInfo(null)
+          setSavedTrip(null)
+        }, 2000)
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to save trip')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-4">Start a New Trip</h2>
-
-      <div className="space-y-4 mb-4">
-        <label className="block text-sm text-slate-300">Start (lat,lng)</label>
-        <input className="w-full p-3 rounded bg-emerald-950/20" value={start} onChange={(e) => setStart(e.target.value)} placeholder="e.g. 12.9716,77.5946" />
-
-        <label className="block text-sm text-slate-300">End (lat,lng)</label>
-        <input className="w-full p-3 rounded bg-emerald-950/20" value={end} onChange={(e) => setEnd(e.target.value)} placeholder="e.g. 12.9352,77.6245" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 py-12 px-4">
+      {/* Background Animation */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{
+            x: [0, 100, 0],
+            y: [0, 50, 0]
+          }}
+          transition={{ duration: 20, repeat: Infinity }}
+          className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            x: [0, -100, 0],
+            y: [0, -50, 0]
+          }}
+          transition={{ duration: 25, repeat: Infinity }}
+          className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl"
+        />
       </div>
 
-      <div className="mb-4">
-        <div className="flex gap-3">
-          {Object.keys(modeLabels).map((m) => (
-            <button
-              key={m}
-              onClick={() => setSelectedMode(m)}
-              className={`flex-1 p-3 rounded-lg text-center border ${selectedMode === m ? 'border-emerald-400 bg-emerald-900/30' : 'border-emerald-800/20'}`}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-4xl mx-auto relative z-10"
+      >
+        {/* Header */}
+        <motion.div variants={itemVariants} className="mb-8 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-400 bg-clip-text text-transparent mb-2">
+            Plan Your Eco Trip
+          </h1>
+          <p className="text-slate-400">Choose sustainable travel options and track your eco impact</p>
+        </motion.div>
+
+        {/* Main Card */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8 shadow-2xl"
+        >
+          {/* Location Selection */}
+          <motion.div variants={itemVariants} className="space-y-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Start Location */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="relative"
+              >
+                <label className="block text-sm font-semibold text-emerald-400 mb-2 flex items-center gap-2">
+                  <MdLocationOn className="text-lg" />
+                  Start Location
+                </label>
+                <motion.button
+                  onClick={() => setActiveLocationPicker('start')}
+                  className="w-full p-4 rounded-xl bg-slate-700/30 border-2 border-slate-600 hover:border-emerald-400/50 text-left transition-all duration-300 hover:bg-slate-700/50"
+                >
+                  {start ? (
+                    <div>
+                      <div className="font-semibold text-white">{start.name || 'Custom Location'}</div>
+                      <div className="text-xs text-slate-400">
+                        {start.lat.toFixed(4)}° N, {start.lng.toFixed(4)}° E
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-slate-400">Click to select start location</div>
+                  )}
+                </motion.button>
+              </motion.div>
+
+              {/* End Location */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="relative"
+              >
+                <label className="block text-sm font-semibold text-teal-400 mb-2 flex items-center gap-2">
+                  <MdLocationOn className="text-lg" />
+                  End Location
+                </label>
+                <motion.button
+                  onClick={() => setActiveLocationPicker('end')}
+                  className="w-full p-4 rounded-xl bg-slate-700/30 border-2 border-slate-600 hover:border-teal-400/50 text-left transition-all duration-300 hover:bg-slate-700/50"
+                >
+                  {end ? (
+                    <div>
+                      <div className="font-semibold text-white">{end.name || 'Custom Location'}</div>
+                      <div className="text-xs text-slate-400">
+                        {end.lat.toFixed(4)}° N, {end.lng.toFixed(4)}° E
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-slate-400">Click to select end location</div>
+                  )}
+                </motion.button>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Error/Success Messages */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-4 p-4 rounded-lg bg-red-500/20 border border-red-500/50 text-red-300 flex items-center gap-2"
+              >
+                <MdError className="text-lg" />
+                {error}
+              </motion.div>
+            )}
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-4 p-4 rounded-lg bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 flex items-center gap-2"
+              >
+                <MdCheckCircle className="text-lg" />
+                {success}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Get Distance Button */}
+          <motion.div variants={itemVariants} className="mb-8">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleCalculateDistance}
+              disabled={loading || !start || !end}
+              className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold hover:shadow-lg hover:shadow-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
             >
-              <div className="text-2xl mb-1">{modeLabels[m].icon}</div>
-              <div className="text-sm">{modeLabels[m].label}</div>
-            </button>
-          ))}
-        </div>
-      </div>
+              {loading ? 'Calculating Distance...' : 'Calculate Distance'}
+            </motion.button>
+          </motion.div>
 
-      {error && <div className="text-red-400 mb-2">{error}</div>}
+          {/* Travel Mode Selection - Only show after distance calculated */}
+          <AnimatePresence>
+            {routeInfo && (
+              <motion.div
+                variants={itemVariants}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="mb-8"
+              >
+                <label className="block text-sm font-semibold text-slate-300 mb-4">
+                  Select Your Travel Mode
+                </label>
+                <div className="grid grid-cols-3 gap-4">
+                  {Object.entries(modeLabels).map(([mode, { icon, label, color }]) => {
+                    // Determine recommendation based on distance
+                    const dist = Number(routeInfo.distanceKm) || 0
+                    let isRecommended = false
+                    if (dist <= 3 && mode === 'CYCLE') isRecommended = true
+                    else if (dist > 3 && dist <= 30 && mode === 'PUBLIC') isRecommended = true
+                    else if (dist > 30 && mode === 'CAR') isRecommended = true
 
-      <div className="flex gap-3">
-        <button className="px-4 py-2 bg-emerald-500 rounded text-white" onClick={handleGetRoute} disabled={loading}>
-          {loading ? 'Calculating...' : 'Get Route Options'}
-        </button>
-      </div>
+                    return (
+                      <motion.button
+                        key={mode}
+                        onClick={() => {
+                          setSelectedMode(mode)
+                          handleRecalculateRoute()
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className={`p-4 rounded-xl transition-all duration-300 ${
+                          selectedMode === mode
+                            ? `bg-gradient-to-br ${color} text-white shadow-lg shadow-emerald-500/30 border-2 border-white/20`
+                            : 'bg-slate-700/30 border-2 border-slate-600 text-slate-300 hover:border-slate-500'
+                        } ${isRecommended ? 'ring-2 ring-offset-2 ring-offset-slate-900 ring-yellow-400' : ''}`}
+                      >
+                        <div className="text-3xl mb-2">{icon}</div>
+                        <div className="text-xs font-medium text-center">{label}</div>
+                        {isRecommended && (
+                          <div className="text-xs font-bold mt-1 text-yellow-300">✨ Recommended</div>
+                        )}
+                      </motion.button>
+                    )
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      {routeInfo && (
-        <div className="mt-6 p-4 bg-emerald-950/10 rounded">
-          <h3 className="font-semibold mb-2">Suggested Option: {modeLabels[selectedMode].label}</h3>
-          <p>Distance: <strong>{Number(routeInfo.distanceKm).toFixed(2)} km</strong></p>
-          <p>Estimated time: <strong>{Number(routeInfo.durationMinutes).toFixed(1)} min</strong></p>
-          <div className="mt-3">
-            <button className="px-4 py-2 bg-teal-500 text-white rounded" onClick={async () => {
-              try {
-                const payload = { start: parseInput(start), end: parseInput(end), mode: selectedMode, distanceKm: routeInfo.distanceKm, durationMinutes: routeInfo.durationMinutes, geometry: routeInfo.geometry };
-                const res = await createTrip(payload);
-                if (res?.success) {
-                  setSavedTrip(res.trip);
-                }
-              } catch (e) {
-                console.error('save trip', e);
-              }
-            }}>Confirm Trip</button>
-          </div>
-        </div>
-      )}
+          {/* Route Info */}
+          <AnimatePresence>
+            {routeInfo && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="space-y-6 p-6 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 border border-slate-600/50"
+              >
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-center">
+                    <div className="text-3xl font-bold text-emerald-400">
+                      {Number(routeInfo.distanceKm).toFixed(2)}
+                    </div>
+                    <div className="text-sm text-slate-400">Distance (km)</div>
+                  </motion.div>
 
-      {savedTrip && (
-        <div className="mt-4 p-3 rounded bg-green-900/20">
-          Trip saved — ID: <strong>{savedTrip._id}</strong>
-        </div>
-      )}
+                  <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-center">
+                    <div className="text-3xl font-bold text-teal-400">
+                      {Number(routeInfo.durationMinutes).toFixed(0)}
+                    </div>
+                    <div className="text-sm text-slate-400">Est. Time (min)</div>
+                  </motion.div>
+
+                  <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-center">
+                    <div className="text-3xl font-bold text-blue-400">
+                      {modeLabels[selectedMode]?.eco || 0}
+                    </div>
+                    <div className="text-sm text-slate-400">Eco Score</div>
+                  </motion.div>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-slate-300 text-sm mb-4">
+                    Recommended mode: <span className="font-semibold text-emerald-400">{modeLabels[selectedMode].label}</span>
+                  </p>
+                </div>
+
+                {/* Confirm Trip Button */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleConfirmTrip}
+                  disabled={loading}
+                  className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-teal-500 text-white font-semibold hover:shadow-lg hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                >
+                  {loading ? 'Saving Trip...' : 'Confirm & Save Trip'}
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Saved Trip Confirmation */}
+          <AnimatePresence>
+            {savedTrip && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="p-6 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/50"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <MdCheckCircle className="text-3xl text-emerald-400" />
+                  <h3 className="text-lg font-bold text-emerald-300">Trip Saved Successfully!</h3>
+                </div>
+                <p className="text-sm text-slate-300">
+                  Trip ID: <span className="font-mono text-emerald-400">{savedTrip._id}</span>
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+
+      {/* Location Picker Modals */}
+      <LocationPicker
+        isOpen={activeLocationPicker === 'start'}
+        onClose={() => setActiveLocationPicker(null)}
+        onSave={(coords) => {
+          setStart({ ...coords })
+          setActiveLocationPicker(null)
+        }}
+        title="Select Start Location"
+      />
+
+      <LocationPicker
+        isOpen={activeLocationPicker === 'end'}
+        onClose={() => setActiveLocationPicker(null)}
+        onSave={(coords) => {
+          setEnd({ ...coords })
+          setActiveLocationPicker(null)
+        }}
+        title="Select End Location"
+      />
     </div>
-  );
+  )
 }
