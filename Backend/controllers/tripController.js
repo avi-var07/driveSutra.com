@@ -235,6 +235,27 @@ export async function completeTrip(req, res) {
 		// Get user for fraud strikes
 		const user = await User.findById(req.user._id);
 		
+		// Enhanced eco-score calculation with fitness data
+		let fitnessBonus = 0;
+		if (req.body.fitnessData && (trip.mode === 'WALK' || trip.mode === 'CYCLE')) {
+			const fitness = req.body.fitnessData;
+			
+			// Bonus for calories burned (health benefit)
+			if (fitness.calories > 0) {
+				fitnessBonus += Math.min(10, fitness.calories / 50); // Up to 10 points
+			}
+			
+			// Bonus for stress relief
+			if (fitness.stressRelief > 0) {
+				fitnessBonus += Math.min(5, fitness.stressRelief / 20); // Up to 5 points
+			}
+			
+			// Bonus for heart rate (shows actual physical activity)
+			if (fitness.avgHeartRate > 100) {
+				fitnessBonus += 5; // 5 points for elevated heart rate
+			}
+		}
+
 		// Calculate ecoScore with all components
 		const ecoResult = calculateEcoScore({
 			mode: trip.mode,
@@ -250,12 +271,18 @@ export async function completeTrip(req, res) {
 			}
 		});
 
+		// Apply fitness bonus to final score
+		const finalEcoScore = Math.min(100, ecoResult.ecoScore + fitnessBonus);
+
 		// Update trip with eco score and components
-		trip.ecoScore = ecoResult.ecoScore;
-		trip.ecoComponents = ecoResult.components;
+		trip.ecoScore = finalEcoScore;
+		trip.ecoComponents = {
+			...ecoResult.components,
+			fitnessBonus: Math.round(fitnessBonus)
+		};
 		
-		// Calculate rewards
-		const rewards = calculateTripRewards(trip.ecoScore, trip.distanceKm, trip.mode);
+		// Calculate rewards (with fitness bonus)
+		const rewards = calculateTripRewards(finalEcoScore, trip.distanceKm, trip.mode, fitnessBonus);
 		trip.xpEarned = rewards.xp;
 		trip.carbonCreditsEarned = rewards.carbonCredits;
 		trip.co2Saved = rewards.co2Saved;
@@ -277,8 +304,11 @@ export async function completeTrip(req, res) {
 			message: 'Trip completed successfully!',
 			trip,
 			rewards,
-			ecoScore: ecoResult.ecoScore,
-			components: ecoResult.components,
+			ecoScore: finalEcoScore,
+			components: {
+				...ecoResult.components,
+				fitnessBonus: Math.round(fitnessBonus)
+			},
 			newAchievements,
 			updatedUser: {
 				xp: updatedUser.xp,
@@ -352,7 +382,7 @@ export async function getTripDetails(req, res) {
 }
 
 // Helper function to calculate trip rewards
-function calculateTripRewards(ecoScore, distanceKm, mode) {
+function calculateTripRewards(ecoScore, distanceKm, mode, fitnessBonus = 0) {
 	const baseXP = Math.round(ecoScore * 0.5 + distanceKm * 2);
 	const modeMultiplier = {
 		'PUBLIC': 1.5,
@@ -362,8 +392,14 @@ function calculateTripRewards(ecoScore, distanceKm, mode) {
 		'BIKE': 1.1
 	};
 	
-	const xp = Math.round(baseXP * (modeMultiplier[mode] || 1));
-	const carbonCredits = Math.round(ecoScore * 0.1 + distanceKm * 0.5);
+	let xp = Math.round(baseXP * (modeMultiplier[mode] || 1));
+	
+	// Fitness bonus for walking/cycling
+	if (fitnessBonus > 0 && (mode === 'WALK' || mode === 'CYCLE')) {
+		xp += Math.round(fitnessBonus * 2); // Double fitness bonus for XP
+	}
+	
+	const carbonCredits = Math.round(ecoScore * 0.1 + distanceKm * 0.5 + fitnessBonus * 0.5);
 	const co2Saved = calculateCO2Saved(distanceKm, mode);
 	const trees = Math.round(co2Saved / 22); // ~22kg CO2 per tree per year
 	

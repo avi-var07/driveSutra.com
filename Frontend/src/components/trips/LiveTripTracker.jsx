@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaPlay, FaStop, FaPause, FaMapMarkerAlt, FaClock, FaRoute } from 'react-icons/fa';
-import { MdSpeed, MdMyLocation } from 'react-icons/md';
+import { FaPlay, FaStop, FaPause, FaMapMarkerAlt, FaClock, FaRoute, FaHeartbeat, FaFire } from 'react-icons/fa';
+import { MdSpeed, MdMyLocation, MdFitnessCenter } from 'react-icons/md';
 import { startTrip, completeTrip } from '../../services/tripService';
+import googleFitService from '../../services/googleFitService';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -57,6 +58,9 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [followUser, setFollowUser] = useState(true);
+  const [fitnessData, setFitnessData] = useState(null);
+  const [googleFitConnected, setGoogleFitConnected] = useState(false);
+  const [showFitnessStats, setShowFitnessStats] = useState(false);
   
   const watchIdRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -93,11 +97,31 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
     return R * c;
   };
 
+  // Connect to Google Fit for walking/cycling trips
+  const connectGoogleFit = async () => {
+    try {
+      if (trip.mode === 'WALK' || trip.mode === 'CYCLE') {
+        const connection = await googleFitService.connectGoogleFit();
+        if (connection && connection.success) {
+          setGoogleFitConnected(true);
+          setShowFitnessStats(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to connect Google Fit:', error);
+    }
+  };
+
   // Start trip tracking
   const handleStartTrip = async () => {
     try {
       setLoading(true);
       setError('');
+      
+      // Connect to Google Fit for walking/cycling
+      if (trip.mode === 'WALK' || trip.mode === 'CYCLE') {
+        await connectGoogleFit();
+      }
       
       // Start trip on backend
       await startTrip(trip._id);
@@ -196,6 +220,20 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         watchIdRef.current = null;
       }
       
+      // Get Google Fit data for walking/cycling trips
+      let googleFitData = null;
+      if (googleFitConnected && (trip.mode === 'WALK' || trip.mode === 'CYCLE')) {
+        try {
+          googleFitData = await googleFitService.getFitnessData(
+            startTimeRef.current,
+            Date.now()
+          );
+          setFitnessData(googleFitData);
+        } catch (error) {
+          console.error('Failed to get Google Fit data:', error);
+        }
+      }
+
       // Complete trip on backend
       const completionData = {
         actualMinutes: tripStats.duration,
@@ -203,7 +241,14 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
           avgSpeed: tripStats.avgSpeed,
           maxSpeed: tripStats.maxSpeed,
           speedViolations: speedsRef.current.filter(s => s > 80).length
-        }
+        },
+        fitnessData: googleFitData,
+        stepsData: googleFitData ? {
+          steps: googleFitData.steps,
+          distance: googleFitData.distance,
+          calories: googleFitData.calories,
+          source: 'google_fit'
+        } : null
       };
       
       const result = await completeTrip(trip._id, completionData);
@@ -296,6 +341,54 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         </motion.div>
       </div>
 
+      {/* Google Fit Stats for Walking/Cycling */}
+      <AnimatePresence>
+        {showFitnessStats && fitnessData && (trip.mode === 'WALK' || trip.mode === 'CYCLE') && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="mt-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <MdFitnessCenter className="text-emerald-400" />
+                Fitness Tracking
+              </h3>
+              <div className="text-xs px-2 py-1 bg-emerald-500/20 text-emerald-300 rounded-full">
+                Google Fit Connected
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+                <div className="text-2xl mb-2">👟</div>
+                <div className="text-xl font-bold text-white">{fitnessData.steps}</div>
+                <div className="text-sm text-slate-400">Steps</div>
+              </div>
+              
+              <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+                <FaFire className="text-orange-400 text-2xl mx-auto mb-2" />
+                <div className="text-xl font-bold text-white">{Math.round(fitnessData.calories)}</div>
+                <div className="text-sm text-slate-400">Calories</div>
+              </div>
+              
+              <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+                <FaHeartbeat className="text-red-400 text-2xl mx-auto mb-2" />
+                <div className="text-xl font-bold text-white">{Math.round(fitnessData.avgHeartRate)}</div>
+                <div className="text-sm text-slate-400">Avg BPM</div>
+              </div>
+              
+              <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+                <div className="text-2xl mb-2">😌</div>
+                <div className="text-xl font-bold text-white">{fitnessData.stressRelief}</div>
+                <div className="text-sm text-slate-400">Stress Relief</div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Map */}
       <div className="relative h-96 rounded-xl overflow-hidden border border-slate-700">
         <MapContainer
@@ -361,7 +454,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
 
       {/* Map Controls */}
       {isTracking && (
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center gap-4 mb-4">
           <button
             onClick={() => setFollowUser(!followUser)}
             className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
@@ -372,6 +465,15 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
           >
             {followUser ? '📍 Following' : '🗺️ Free View'}
           </button>
+          
+          {(trip.mode === 'WALK' || trip.mode === 'CYCLE') && !googleFitConnected && (
+            <button
+              onClick={connectGoogleFit}
+              className="px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-all duration-300"
+            >
+              Connect Google Fit
+            </button>
+          )}
         </div>
       )}
 
