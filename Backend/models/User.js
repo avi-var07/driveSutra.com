@@ -41,7 +41,8 @@ const userSchema = new mongoose.Schema(
     // Anti-fraud tracking
     fraudStrikes: { type: Number, default: 0 },
     
-    // Google Fit integration (optional)
+    // Google integration
+    googleId: { type: String },
     googleFitConnected: { type: Boolean, default: false },
     googleFitToken: { type: String, default: "" }
   },

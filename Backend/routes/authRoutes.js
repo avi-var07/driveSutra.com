@@ -1,5 +1,5 @@
 import express from "express";
-import { sendOtp, verifyOtp, register, login, forgotPassword, verifyForgotOtp, resetPassword, changePassword, updateProfile } from "../controllers/authController.js";
+import { sendOtp, verifyOtp, register, login, forgotPassword, verifyForgotOtp, resetPassword, changePassword, updateProfile, googleSignIn } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -15,6 +15,9 @@ router.post("/register", register);
 
 // Route for logging in
 router.post("/login", login);
+
+// Google Sign-in route
+router.post("/google-signin", googleSignIn);
 
 // Forgot password routes
 router.post("/forgot-password", forgotPassword);

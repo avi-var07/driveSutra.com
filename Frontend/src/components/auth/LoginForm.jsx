@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import { FaEnvelope, FaLock, FaGoogle, FaEye, FaEyeSlash } from 'react-icons/fa';
+import googleAuthService from '../../services/googleAuthService';
 
 const LoginForm = ({ switchToRegister }) => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -29,7 +30,7 @@ const LoginForm = ({ switchToRegister }) => {
       return;
     }
 
-    const result = await login(formData.email, formData.password);
+    const result = await authLogin(formData.email, formData.password);
 
     if (result.success) {
       navigate('/dashboard');
@@ -39,14 +40,25 @@ const LoginForm = ({ switchToRegister }) => {
     setLoading(false);
   };
 
-  const handleGoogleLogin = async (credentialResponse) => {
+  const { login: authLogin, setUser, setIsAuthenticated } = useAuth();
+
+  const handleGoogleLogin = async () => {
     setError('');
     setLoading(true);
     try {
-      console.log('Google auth token:', credentialResponse);
-      setError('Google authentication coming soon');
+      const result = await googleAuthService.signInWithGoogle();
+      
+      if (result.success) {
+        // Update auth context
+        setUser(result.user);
+        setIsAuthenticated(true);
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Google authentication failed');
+      }
     } catch (err) {
       setError('Google authentication failed');
+      console.error('Google login error:', err);
     } finally {
       setLoading(false);
     }
@@ -177,7 +189,7 @@ const LoginForm = ({ switchToRegister }) => {
         variants={itemVariants}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        onClick={() => handleGoogleLogin(null)}
+        onClick={handleGoogleLogin}
         disabled={loading}
         className="w-full flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-3 transition-all duration-300 disabled:opacity-50 font-semibold"
       >

@@ -3,6 +3,7 @@ import OtpToken from "../models/OtpToken.js";
 import otpGenerator from "otp-generator";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/sendEmail.js";
+import { OAuth2Client } from 'google-auth-library';
 
 // Send OTP
 export const sendOtp = async (req, res) => {
@@ -289,5 +290,88 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error("Login Error:", error);
     return res.status(500).json({ success: false, message: "Login failed" });
+  }
+};
+
+// Google Sign-in
+export const googleSignIn = async (req, res) => {
+  try {
+    const { idToken, profile } = req.body;
+
+    if (!idToken || !profile) {
+      return res.status(400).json({ success: false, message: "Missing Google authentication data" });
+    }
+
+    // Verify Google ID token
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      
+      const payload = ticket.getPayload();
+      
+      if (!payload || payload.email !== profile.email) {
+        return res.status(400).json({ success: false, message: "Invalid Google token" });
+      }
+    } catch (verifyError) {
+      console.error("Google token verification failed:", verifyError);
+      return res.status(400).json({ success: false, message: "Invalid Google token" });
+    }
+
+    // Check if user exists
+    let user = await User.findOne({ email: profile.email });
+
+    if (user) {
+      // Update user profile with Google data if needed
+      if (!user.avatar && profile.avatar) {
+        user.avatar = profile.avatar;
+        await user.save();
+      }
+    } else {
+      // Create new user
+      user = await User.create({
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        email: profile.email,
+        password: 'google_auth_' + Date.now(), // Placeholder password
+        avatar: profile.avatar || '',
+        isVerified: true, // Google accounts are pre-verified
+        googleId: profile.id
+      });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Google sign-in successful",
+      token,
+      user: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        avatar: user.avatar,
+        xp: user.xp,
+        level: user.level,
+        ecoScore: user.ecoScore,
+        carbonCredits: user.carbonCredits,
+        treesGrown: user.treesGrown,
+        co2Saved: user.co2Saved,
+        currentStreak: user.currentStreak,
+        totalTrips: user.totalTrips
+      },
+    });
+  } catch (error) {
+    console.error("Google Sign-in Error:", error);
+    return res.status(500).json({ success: false, message: "Google sign-in failed" });
   }
 };
