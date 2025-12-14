@@ -64,7 +64,7 @@ const ForgetPassword = () => {
   };
 
   const handleOtpChange = (index, value) => {
-    if (!/^\d*$/.test(value)) return; // Only allow digits
+   
 
     const newOtp = [...otp];
     newOtp[index] = value;

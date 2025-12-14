@@ -25,7 +25,7 @@ export default function Navbar() {
           <nav className="hidden md:flex items-center gap-6 ml-4">
             <NavLink to="/dashboard">Dashboard</NavLink>
             <NavLink to="/trip/new">Start Trip</NavLink>
-            <NavLink to="/trips">My Trips</NavLink>
+            <NavLink to="/rewards">Rewards</NavLink>
             <NavLink to="/challenges">Challenges</NavLink>
             <NavLink to="/achievements">Achievements</NavLink>
             <NavLink to="/forest">Forest</NavLink>
@@ -84,7 +84,7 @@ export default function Navbar() {
               {isAuthenticated && (
                 <>
                   <MobileNavLink to="/dashboard" onClick={() => setOpen(false)}>Dashboard</MobileNavLink>
-                  <MobileNavLink to="/trips" onClick={() => setOpen(false)}>My Trips</MobileNavLink>
+                  <MobileNavLink to="/rewards" onClick={() => setOpen(false)}>Rewards</MobileNavLink>
                   <MobileNavLink to="/challenges" onClick={() => setOpen(false)}>Challenges</MobileNavLink>
                   <MobileNavLink to="/forest" onClick={() => setOpen(false)}>Forest</MobileNavLink>
                 </>
