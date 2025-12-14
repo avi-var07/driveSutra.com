@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getRouteOptions, createTrip } from '../../services/tripService'
 import { FaBus, FaBicycle, FaCar } from 'react-icons/fa'
@@ -25,6 +26,7 @@ const itemVariants = {
 }
 
 export default function NewTripForm() {
+  const navigate = useNavigate()
   const [start, setStart] = useState(null)
   const [end, setEnd] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -98,16 +100,11 @@ export default function NewTripForm() {
       const res = await createTrip(payload)
       if (res?.success) {
         setSavedTrip(res.trip)
-        setSuccess('Trip planned successfully! You can now start your journey.')
-        // Reset form after 3s
+        setSuccess('Trip planned successfully! Redirecting to trip tracker...')
+        // Navigate to trip tracker after 2 seconds
         setTimeout(() => {
-          setStart(null)
-          setEnd(null)
-          setRouteOptions(null)
-          setSelectedOption(null)
-          setSavedTrip(null)
-          setWeatherData(null)
-        }, 3000)
+          navigate(`/trip/${res.trip._id}/track`)
+        }, 2000)
       }
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to plan trip')

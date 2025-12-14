@@ -269,6 +269,9 @@ export async function completeTrip(req, res) {
 		// Check for new achievements
 		const newAchievements = await checkAchievements(user._id);
 
+		// Get updated user data for response
+		const updatedUser = await User.findById(user._id).select('-password');
+
 		return res.json({ 
 			success: true, 
 			message: 'Trip completed successfully!',
@@ -276,7 +279,17 @@ export async function completeTrip(req, res) {
 			rewards,
 			ecoScore: ecoResult.ecoScore,
 			components: ecoResult.components,
-			newAchievements
+			newAchievements,
+			updatedUser: {
+				xp: updatedUser.xp,
+				level: updatedUser.level,
+				ecoScore: updatedUser.ecoScore,
+				carbonCredits: updatedUser.carbonCredits,
+				co2Saved: updatedUser.co2Saved,
+				treesGrown: updatedUser.treesGrown,
+				currentStreak: updatedUser.currentStreak,
+				totalTrips: updatedUser.totalTrips
+			}
 		});
 		
 	} catch (err) {

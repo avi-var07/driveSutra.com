@@ -11,6 +11,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import EcoDriveMap from "./components/EcoDriveMap";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import NewTripPage from "./pages/NewTrip";
+import RewardsPage from "./pages/Rewards";
+import TripTracker from "./pages/TripTracker";
 
 // Small placeholder used for routes we don't want to import heavy components for now
 const RoutesPlaceholder = ({ name }) => <div className="text-white p-20 text-4xl">{name} Page Placeholder</div>;
@@ -55,6 +57,7 @@ function App() {
         {/* App pages referenced by Navbar */}
         <Route path="/trips" element={<div className="text-white p-20 text-4xl"><RoutesPlaceholder name="Trips" /></div>} />
         <Route path="/trip/new" element={<ProtectedRoute><NewTripPage /></ProtectedRoute>} />
+        <Route path="/rewards" element={<ProtectedRoute><RewardsPage /></ProtectedRoute>} />
         <Route path="/challenges" element={<div className="text-white p-20 text-4xl"><RoutesPlaceholder name="Challenges" /></div>} />
         <Route path="/forest" element={<div className="text-white p-20 text-4xl"><RoutesPlaceholder name="Forest" /></div>} />
 
@@ -78,6 +81,7 @@ function App() {
         }/>
 
         <Route path="/eco-map" element={<EcoDriveMap />}/>
+        <Route path="/trip/:tripId/track" element={<ProtectedRoute><TripTracker /></ProtectedRoute>} />
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" />} />

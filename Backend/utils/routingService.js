@@ -10,14 +10,73 @@ const SPEED_PROFILES = {
   'driving-car': 50       // Driving: 50 km/h average
 };
 
-// OSRM fallback routing
+// Calculate straight-line distance and estimate route
+function calculateStraightLineRoute(startLngLat, endLngLat, profile = 'driving-car') {
+  try {
+    console.log(`[FALLBACK] Using straight-line calculation for profile: ${profile}`);
+    
+    // Calculate straight-line distance using Haversine formula
+    const R = 6371; // Earth's radius in km
+    const lat1 = startLngLat[1] * Math.PI / 180;
+    const lat2 = endLngLat[1] * Math.PI / 180;
+    const deltaLat = (endLngLat[1] - startLngLat[1]) * Math.PI / 180;
+    const deltaLng = (endLngLat[0] - startLngLat[0]) * Math.PI / 180;
+
+    const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const straightDistance = R * c;
+    
+    // Apply route factor (roads are not straight lines)
+    const routeFactors = {
+      'foot-walking': 1.2,    // 20% longer for pedestrian paths
+      'cycling-regular': 1.3, // 30% longer for bike routes
+      'driving-car': 1.4      // 40% longer for road routes
+    };
+    
+    const routeFactor = routeFactors[profile] || 1.4;
+    const distance = straightDistance * routeFactor;
+    
+    // Calculate duration based on profile speed
+    const profileSpeed = SPEED_PROFILES[profile] || 50;
+    const durationMinutes = (distance / profileSpeed) * 60;
+    
+    console.log(`[FALLBACK] Success: Distance=${distance.toFixed(2)}km, Duration=${durationMinutes.toFixed(1)}min`);
+    
+    return {
+      distanceKm: distance,
+      durationMinutes: durationMinutes,
+      geometry: null, // No geometry for fallback
+      raw: { fallback: true, straightDistance, routeFactor },
+      source: 'FALLBACK'
+    };
+  } catch (err) {
+    console.error(`[FALLBACK] Calculation failed:`, err.message);
+    throw err;
+  }
+}
+
+// OSRM fallback routing with timeout and retry
 async function getRouteOSRM(startLngLat, endLngLat, profile = 'driving-car') {
   const osrmProfile = profile.includes('cycling') ? 'cycling' : profile.includes('foot') ? 'foot' : 'driving';
   
   try {
     console.log(`[OSRM] Fallback routing for profile: ${profile}`);
     const url = `https://router.project-osrm.org/route/v1/${osrmProfile}/${startLngLat[0]},${startLngLat[1]};${endLngLat[0]},${endLngLat[1]}?overview=false`;
-    const res = await fetch(url);
+    
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    
+    const res = await fetch(url, { 
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'EcoDrive-App/1.0'
+      }
+    });
+    
+    clearTimeout(timeoutId);
     
     if (!res.ok) {
       throw new Error(`OSRM error ${res.status}`);
@@ -42,15 +101,16 @@ async function getRouteOSRM(startLngLat, endLngLat, profile = 'driving-car') {
     };
   } catch (err) {
     console.error(`[OSRM] Fallback failed:`, err.message);
-    throw err;
+    // If OSRM fails, use straight-line calculation
+    return calculateStraightLineRoute(startLngLat, endLngLat, profile);
   }
 }
 
 export async function getRouteORS(startLngLat, endLngLat, profile = 'driving-car') {
   const apiKey = process.env.ORS_API_KEY;
 
-  // Try ORS first if key is available
-  if (apiKey && apiKey.trim().length > 0) {
+  // Try ORS first if key is available and valid
+  if (apiKey && apiKey.trim().length > 10 && !apiKey.includes('your_')) {
     try {
       console.log(`[ORS] Requesting route for profile: ${profile}`);
       console.log(`[ORS] Start: ${startLngLat.join(',')}, End: ${endLngLat.join(',')}`);
@@ -66,21 +126,27 @@ export async function getRouteORS(startLngLat, endLngLat, profile = 'driving-car
         format: 'json'
       };
 
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': apiKey
+          'Authorization': apiKey,
+          'User-Agent': 'EcoDrive-App/1.0'
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
       console.log(`[ORS] Response status: ${response.status}`);
 
       if (!response.ok) {
         const errorText = await response.text();
         console.warn(`[ORS] API error ${response.status}: ${errorText.substring(0, 200)}`);
-        console.log(`[ORS] Falling back to OSRM...`);
         throw new Error(`ORS API error ${response.status}`);
       }
 
@@ -107,13 +173,13 @@ export async function getRouteORS(startLngLat, endLngLat, profile = 'driving-car
       };
 
     } catch (err) {
-      console.warn(`[ORS] Route failed: ${err.message}, trying OSRM fallback...`);
-      // Fall through to OSRM
+      console.warn(`[ORS] Route failed: ${err.message}, trying fallback...`);
+      // Fall through to fallback
     }
   } else {
-    console.log(`[ORS] No API key configured, using OSRM fallback`);
+    console.log(`[ORS] No valid API key configured, using fallback routing`);
   }
 
-  // Use OSRM as fallback
+  // Use OSRM as fallback, with straight-line calculation as final fallback
   return getRouteOSRM(startLngLat, endLngLat, profile);
 }
