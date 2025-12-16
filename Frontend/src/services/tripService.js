@@ -39,7 +39,7 @@ export async function getTripDetails(tripId) {
   return res.data;
 }
 
-export default {
+export const tripService = {
   getRouteOptions,
   createTrip,
   startTrip,
@@ -47,3 +47,5 @@ export default {
   getUserTrips,
   getTripDetails
 };
+
+export default tripService;

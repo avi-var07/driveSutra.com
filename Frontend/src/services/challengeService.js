@@ -1,5 +1,11 @@
 import api from './api';
 
+// Get all challenges
+export async function getChallenges() {
+  const res = await api.get('/challenges');
+  return res.data;
+}
+
 // Get all active challenges
 export async function getActiveChallenges() {
   const res = await api.get('/challenges');
@@ -24,9 +30,12 @@ export async function createChallenge(challengeData) {
   return res.data;
 }
 
-export default {
+export const challengeService = {
+  getChallenges,
   getActiveChallenges,
   joinChallenge,
   getUserChallengeProgress,
   createChallenge
 };
+
+export default challengeService;
