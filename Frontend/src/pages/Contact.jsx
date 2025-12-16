@@ -270,6 +270,69 @@ export default function Contact() {
         </div>
       </section>
 
+      {/* Developers Section */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl font-bold mb-4 text-emerald-400">Meet Our Developers</h2>
+            <p className="text-slate-300 text-lg">The passionate team behind driveSutra</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Developer 1 */}
+            <DeveloperCard
+              name="Developer Name 1"
+              designation="Full Stack Developer"
+              about="Passionate about creating sustainable technology solutions and environmental conservation. Specializes in React, Node.js, and MongoDB."
+              email="developer1@drivesutra.com"
+              social={{
+                github: "https://github.com/developer1",
+                linkedin: "https://linkedin.com/in/developer1",
+                twitter: "https://twitter.com/developer1"
+              }}
+              avatar="👨‍💻"
+              delay={0.1}
+            />
+
+            {/* Developer 2 */}
+            <DeveloperCard
+              name="Developer Name 2"
+              designation="Frontend Developer"
+              about="UI/UX enthusiast with a focus on creating beautiful and intuitive user experiences. Expert in React, Tailwind CSS, and modern web technologies."
+              email="developer2@drivesutra.com"
+              social={{
+                github: "https://github.com/developer2",
+                linkedin: "https://linkedin.com/in/developer2",
+                twitter: "https://twitter.com/developer2"
+              }}
+              avatar="👩‍💻"
+              delay={0.2}
+            />
+
+            {/* Developer 3 */}
+            <DeveloperCard
+              name="Developer Name 3"
+              designation="Backend Developer"
+              about="Backend architecture specialist focused on scalable and efficient systems. Experienced in Node.js, Express, database optimization, and API design."
+              email="developer3@drivesutra.com"
+              social={{
+                github: "https://github.com/developer3",
+                linkedin: "https://linkedin.com/in/developer3",
+                twitter: "https://twitter.com/developer3"
+              }}
+              avatar="🧑‍💻"
+              delay={0.3}
+            />
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
       <section className="py-16 px-4 bg-slate-900/50">
         <div className="max-w-4xl mx-auto">
@@ -350,6 +413,150 @@ function SocialButton({ href, icon: Icon }) {
     >
       <Icon />
     </motion.a>
+  );
+}
+
+/* Developer Card Component */
+function DeveloperCard({ name, designation, about, email, social, avatar, delay = 0 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay }}
+      viewport={{ once: true }}
+      className="relative bg-slate-900/50 border border-slate-800 rounded-2xl p-6 hover:border-emerald-500/50 transition-all duration-300 overflow-hidden group"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Background gradient effect */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-0"
+        animate={{ opacity: isHovered ? 1 : 0 }}
+        transition={{ duration: 0.3 }}
+      />
+
+      {/* Floating particles */}
+      {isHovered && (
+        <>
+          {[...Array(3)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-emerald-400 rounded-full"
+              style={{
+                left: `${20 + i * 30}%`,
+                top: `${20 + i * 20}%`
+              }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ 
+                scale: [0, 1, 0],
+                opacity: [0, 1, 0],
+                y: [-10, -20, -30]
+              }}
+              transition={{ 
+                duration: 2,
+                delay: i * 0.2,
+                repeat: Infinity,
+                repeatDelay: 1
+              }}
+            />
+          ))}
+        </>
+      )}
+
+      <div className="relative z-10">
+        {/* Avatar */}
+        <div className="text-center mb-6">
+          <motion.div
+            className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg"
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            transition={{ duration: 0.3 }}
+          >
+            {avatar}
+          </motion.div>
+          <h3 className="text-xl font-bold text-white mb-1">{name}</h3>
+          <p className="text-emerald-400 font-medium">{designation}</p>
+        </div>
+
+        {/* About */}
+        <div className="mb-6">
+          <p className="text-slate-300 text-sm leading-relaxed">{about}</p>
+        </div>
+
+        {/* Contact */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <FaEnvelope className="text-emerald-400 text-sm" />
+            <a 
+              href={`mailto:${email}`}
+              className="text-slate-300 text-sm hover:text-emerald-400 transition-colors"
+            >
+              {email}
+            </a>
+          </div>
+        </div>
+
+        {/* Social Links */}
+        <div className="flex items-center justify-center gap-3">
+          {social.github && (
+            <motion.a
+              href={social.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center text-slate-400 hover:bg-gray-700 hover:text-white transition-all duration-300"
+              whileHover={{ scale: 1.1, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <FaGithub className="text-sm" />
+            </motion.a>
+          )}
+          {social.linkedin && (
+            <motion.a
+              href={social.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center text-slate-400 hover:bg-blue-600 hover:text-white transition-all duration-300"
+              whileHover={{ scale: 1.1, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <FaLinkedin className="text-sm" />
+            </motion.a>
+          )}
+          {social.twitter && (
+            <motion.a
+              href={social.twitter}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center text-slate-400 hover:bg-blue-400 hover:text-white transition-all duration-300"
+              whileHover={{ scale: 1.1, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <FaTwitter className="text-sm" />
+            </motion.a>
+          )}
+        </div>
+
+        {/* Shine effect */}
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
+          initial={{ x: '-100%', skewX: -45 }}
+          animate={{ x: isHovered ? '200%' : '-100%' }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+        />
+      </div>
+
+      {/* Corner accent */}
+      <motion.div
+        className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-emerald-500/20 to-transparent rounded-bl-full"
+        initial={{ scale: 0, rotate: -45 }}
+        animate={{ 
+          scale: isHovered ? 1 : 0,
+          rotate: isHovered ? 0 : -45
+        }}
+        transition={{ duration: 0.3 }}
+      />
+    </motion.div>
   );
 }
 
