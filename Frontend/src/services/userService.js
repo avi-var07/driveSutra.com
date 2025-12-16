@@ -38,7 +38,7 @@ export async function checkAchievements() {
   return res.data;
 }
 
-export default {
+export const userService = {
   getDashboardStats,
   getUserProfile,
   updateUserProfile,
@@ -46,3 +46,5 @@ export default {
   getLeaderboard,
   checkAchievements
 };
+
+export default userService;

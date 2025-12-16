@@ -6,6 +6,8 @@ export async function getAchievements() {
   return res.data;
 }
 
-export default {
+export const achievementService = {
   getAchievements
 };
+
+export default achievementService;
