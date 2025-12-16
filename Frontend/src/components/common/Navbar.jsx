@@ -12,48 +12,64 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 backdrop-blur bg-emerald-950/75 border-b border-emerald-800/20">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          {/* Logo */}
+      <header className="sticky top-0 z-50 backdrop-blur bg-emerald-950/75 border-b border-emerald-800/20 shadow-lg shadow-emerald-900/20">
+        <div className="w-full px-6 py-3 flex items-center">
+          {/* Left Corner - Logo */}
           <div className="flex items-center gap-3">
             <Link to="/" className="group flex items-center gap-3">
               <NavbarLogo />
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6 ml-4">
-            <NavLink to="/dashboard">Dashboard</NavLink>
-            <NavLink to="/trip/new">Start Trip</NavLink>
+          {/* Left Side - Dashboard (when authenticated) */}
+          {isAuthenticated && (
+            <div className="hidden md:flex ml-8">
+              <NavLink to="/dashboard">Dashboard</NavLink>
+            </div>
+          )}
+
+          {/* Center Navigation - Spread across available space */}
+          <nav className="hidden md:flex items-center justify-center flex-1 gap-8 mx-8">
             <NavLink to="/rewards">Rewards</NavLink>
             <NavLink to="/challenges">Challenges</NavLink>
             <NavLink to="/achievements">Achievements</NavLink>
             <NavLink to="/forest">Forest</NavLink>
+            <NavLink to="/about">About</NavLink>
+            <NavLink to="/contact">Contact</NavLink>
           </nav>
 
-          {/* Desktop CTA Buttons */}
-          <div className="hidden md:flex items-center gap-3 ml-auto">
+          {/* Right Corner - User Actions */}
+          <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <>
-                <div className="hidden lg:flex items-center gap-2 bg-emerald-900/20 border border-emerald-800/20 rounded-full px-3 py-1 text-sm text-slate-200">
-                  <span className="text-slate-300 mr-2">Eco</span>
-                  <span className="font-semibold">{user?.ecoScore ?? '—'}</span>
+                <div className="hidden lg:flex items-center gap-2 bg-emerald-900/20 border border-emerald-800/20 rounded-full px-4 py-2 text-sm text-slate-200">
+                  <span className="text-slate-300">Eco</span>
+                  <span className="font-semibold text-emerald-400">{user?.ecoScore ?? '—'}</span>
                   <span className="mx-2 text-slate-400">•</span>
                   <span className="text-slate-300">XP</span>
-                  <span className="font-semibold">{user?.xp ?? 0}</span>
+                  <span className="font-semibold text-blue-400">{user?.xp ?? 0}</span>
                   <span className="mx-2 text-slate-400">•</span>
                   <span className="text-slate-300">Lv</span>
-                  <span className="font-semibold">{user?.level ?? '—'}</span>
+                  <span className="font-semibold text-yellow-400">{user?.level ?? '—'}</span>
                 </div>
 
-                <Link to="/profile" className="px-3 py-1 rounded-md text-slate-200 hover:bg-emerald-950/20">Profile</Link>
-                <Link to="/trip/new" className="px-3 py-1 rounded-md bg-emerald-600 text-white font-medium">Start Trip</Link>
-                <button onClick={() => { logout(); navigate('/'); }} className="px-3 py-1 rounded-md bg-red-600 text-white">Logout</button>
+                <Link 
+                  to="/profile" 
+                  className="px-4 py-2 rounded-lg text-slate-200 hover:bg-emerald-950/30 hover:text-emerald-300 transition-all duration-300 border border-transparent hover:border-emerald-700/30"
+                >
+                  Profile
+                </Link>
+                
+                <LogoutButton onClick={() => { logout(); navigate('/'); }} />
               </>
             ) : (
               <>
-                <Link to="/auth" className="px-3 py-1 rounded-md border border-emerald-700/30 text-slate-200">Log In</Link>
-                <Link to="/trip/new" className="px-3 py-1 rounded-md bg-emerald-600 text-white font-medium">Start Trip</Link>
+                <Link 
+                  to="/auth" 
+                  className="px-4 py-2 rounded-lg border border-emerald-700/30 text-slate-200 hover:bg-emerald-950/30 hover:border-emerald-600/50 transition-all duration-300"
+                >
+                  Log In
+                </Link>
               </>
             )}
           </div>
@@ -80,7 +96,6 @@ export default function Navbar() {
         {open && (
           <div className="md:hidden px-6 pb-6 animate-slideDown">
             <div className="flex flex-col gap-2 rounded-xl p-4 backdrop-blur-md bg-emerald-950/40 border border-emerald-800/30">
-              <MobileNavLink to="/features" onClick={() => setOpen(false)}>Features</MobileNavLink>
               {isAuthenticated && (
                 <>
                   <MobileNavLink to="/dashboard" onClick={() => setOpen(false)}>Dashboard</MobileNavLink>
@@ -89,6 +104,8 @@ export default function Navbar() {
                   <MobileNavLink to="/forest" onClick={() => setOpen(false)}>Forest</MobileNavLink>
                 </>
               )}
+              <MobileNavLink to="/about" onClick={() => setOpen(false)}>About</MobileNavLink>
+              <MobileNavLink to="/contact" onClick={() => setOpen(false)}>Contact</MobileNavLink>
 
               <div className="mt-3 pt-3 border-t border-emerald-800/30 flex flex-col gap-2">
                 {!isAuthenticated ? (
@@ -188,6 +205,59 @@ function MobileNavLink({ to, children, onClick }) {
         {children}
       </span>
     </Link>
+  );
+}
+
+/* Impressive Logout Button Component */
+function LogoutButton({ onClick }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <motion.button
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="relative px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium overflow-hidden group shadow-lg shadow-red-900/30"
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      {/* Background animation */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-red-700 to-red-800"
+        initial={{ x: '-100%' }}
+        animate={{ x: isHovered ? '0%' : '-100%' }}
+        transition={{ duration: 0.3 }}
+      />
+      
+      {/* Glow effect */}
+      <motion.div
+        className="absolute inset-0 bg-red-500/20 blur-xl"
+        animate={{ 
+          opacity: isHovered ? 1 : 0,
+          scale: isHovered ? 1.2 : 1
+        }}
+        transition={{ duration: 0.3 }}
+      />
+      
+      {/* Text with icon */}
+      <span className="relative z-10 flex items-center gap-2">
+        <motion.span
+          animate={{ rotate: isHovered ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          🚪
+        </motion.span>
+        Logout
+      </span>
+      
+      {/* Shine effect */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        initial={{ x: '-100%', skewX: -45 }}
+        animate={{ x: isHovered ? '200%' : '-100%' }}
+        transition={{ duration: 0.6 }}
+      />
+    </motion.button>
   );
 }
 

@@ -6,6 +6,7 @@ import LevelProgress from '../components/dashboard/LevelProgress';
 import RecentTrips from '../components/dashboard/RecentTrips';
 import EcoScoreCard from '../components/dashboard/EcoScoreCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import AnimatedCard, { ActionCard } from '../components/common/AnimatedCard';
 import { getDashboardStats } from '../services/userService';
 import { FaSync } from 'react-icons/fa';
 
@@ -175,28 +176,34 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Action Cards */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div 
-            onClick={() => navigate('/trip/new')}
-            className="glass-card p-6 rounded-2xl backdrop-blur-md bg-emerald-950/20 border border-emerald-800/30 shadow-lg cursor-pointer hover:bg-emerald-950/30 hover:border-emerald-700/40 hover:-translate-y-1 transition-all duration-300"
-          >
-            <h3 className="text-lg font-bold mb-2 text-white">🚴 New Trip</h3>
-            <p className="text-sm text-slate-300">Plan your next eco-friendly journey</p>
-          </div>
-          <div 
-            onClick={() => navigate('/challenges')}
-            className="glass-card p-6 rounded-2xl backdrop-blur-md bg-emerald-950/20 border border-emerald-800/30 shadow-lg cursor-pointer hover:bg-emerald-950/30 hover:border-emerald-700/40 hover:-translate-y-1 transition-all duration-300"
-          >
-            <h3 className="text-lg font-bold mb-2 text-white">🏆 Challenges</h3>
-            <p className="text-sm text-slate-300">Join active challenges and compete</p>
-          </div>
-          <div 
-            onClick={() => navigate('/forest')}
-            className="glass-card p-6 rounded-2xl backdrop-blur-md bg-emerald-950/20 border border-emerald-800/30 shadow-lg cursor-pointer hover:bg-emerald-950/30 hover:border-emerald-700/40 hover:-translate-y-1 transition-all duration-300"
-          >
-            <h3 className="text-lg font-bold mb-2 text-white">🌳 Your Forest</h3>
-            <p className="text-sm text-slate-300">See your environmental impact grow</p>
-          </div>
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ActionCard
+            icon="🚴"
+            title="New Trip"
+            description="Plan your next eco-friendly journey"
+            buttonText="Start Trip"
+            onAction={() => navigate('/trip/new')}
+            glowColor="emerald"
+            delay={0.1}
+          />
+          <ActionCard
+            icon="🏆"
+            title="Challenges"
+            description="Join active challenges and compete"
+            buttonText="View Challenges"
+            onAction={() => navigate('/challenges')}
+            glowColor="blue"
+            delay={0.2}
+          />
+          <ActionCard
+            icon="🌳"
+            title="Your Forest"
+            description="See your environmental impact grow"
+            buttonText="View Forest"
+            onAction={() => navigate('/forest')}
+            glowColor="green"
+            delay={0.3}
+          />
         </div>
       </main>
     </div>

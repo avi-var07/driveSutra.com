@@ -1,9 +1,45 @@
 import User from "../models/User.js";
+import Session from "../models/Session.js";
 import OtpToken from "../models/OtpToken.js";
 import otpGenerator from "otp-generator";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/sendEmail.js";
 import { OAuth2Client } from 'google-auth-library';
+
+// Helper function to extract device info from request
+function getDeviceInfo(req) {
+  const userAgent = req.headers['user-agent'] || '';
+  return {
+    userAgent,
+    browser: getBrowser(userAgent),
+    os: getOS(userAgent),
+    device: getDevice(userAgent),
+    ip: req.ip || req.connection.remoteAddress || req.socket.remoteAddress
+  };
+}
+
+function getBrowser(userAgent) {
+  if (userAgent.includes('Chrome')) return 'Chrome';
+  if (userAgent.includes('Firefox')) return 'Firefox';
+  if (userAgent.includes('Safari')) return 'Safari';
+  if (userAgent.includes('Edge')) return 'Edge';
+  return 'Unknown';
+}
+
+function getOS(userAgent) {
+  if (userAgent.includes('Windows')) return 'Windows';
+  if (userAgent.includes('Mac')) return 'macOS';
+  if (userAgent.includes('Linux')) return 'Linux';
+  if (userAgent.includes('Android')) return 'Android';
+  if (userAgent.includes('iOS')) return 'iOS';
+  return 'Unknown';
+}
+
+function getDevice(userAgent) {
+  if (userAgent.includes('Mobile')) return 'Mobile';
+  if (userAgent.includes('Tablet')) return 'Tablet';
+  return 'Desktop';
+}
 
 // Send OTP
 export const sendOtp = async (req, res) => {
@@ -222,8 +258,16 @@ export const register = async (req, res) => {
     // Create new user
     const user = await User.create({ firstName, lastName, email, password });
 
-    // Generate JWT token
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
+    // Create session
+    const deviceInfo = getDeviceInfo(req);
+    const session = await Session.createSession(user._id, deviceInfo, {}, 'email');
+
+    // Generate JWT token with session info
+    const token = jwt.sign({ 
+      id: user._id, 
+      email: user.email, 
+      sessionId: session._id 
+    }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
@@ -268,8 +312,16 @@ export const login = async (req, res) => {
       return res.status(401).json({ success: false, message: "Wrong password" });
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
+    // Create session
+    const deviceInfo = getDeviceInfo(req);
+    const session = await Session.createSession(user._id, deviceInfo, {}, 'email');
+
+    // Generate JWT token with session info
+    const token = jwt.sign({ 
+      id: user._id, 
+      email: user.email, 
+      sessionId: session._id 
+    }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
@@ -343,9 +395,13 @@ export const googleSignIn = async (req, res) => {
       });
     }
 
-    // Generate JWT token
+    // Create session
+    const deviceInfo = getDeviceInfo(req);
+    const session = await Session.createSession(user._id, deviceInfo, {}, 'google');
+
+    // Generate JWT token with session info
     const token = jwt.sign(
-      { id: user._id, email: user.email },
+      { id: user._id, email: user.email, sessionId: session._id },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -373,5 +429,55 @@ export const googleSignIn = async (req, res) => {
   } catch (error) {
     console.error("Google Sign-in Error:", error);
     return res.status(500).json({ success: false, message: "Google sign-in failed" });
+  }
+};
+
+// Logout
+export const logout = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(400).json({ success: false, message: "No token provided" });
+    }
+
+    // Decode token to get session ID
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    if (decoded.sessionId) {
+      // Find and end the session
+      const session = await Session.findById(decoded.sessionId);
+      if (session && session.isActive) {
+        await session.endSession();
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful"
+    });
+  } catch (error) {
+    console.error("Logout Error:", error);
+    return res.status(500).json({ success: false, message: "Logout failed" });
+  }
+};
+
+// Get user sessions
+export const getUserSessions = async (req, res) => {
+  try {
+    const sessions = await Session.find({ 
+      user: req.user._id 
+    })
+    .sort({ loginTime: -1 })
+    .limit(10)
+    .select('-sessionToken');
+
+    return res.status(200).json({
+      success: true,
+      sessions
+    });
+  } catch (error) {
+    console.error("Get Sessions Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to get sessions" });
   }
 };

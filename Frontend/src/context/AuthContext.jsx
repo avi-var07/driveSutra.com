@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { loginAPI, registerAPI } from "../services/authService";
+import { loginAPI, registerAPI, logoutAPI } from "../services/authService";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -80,11 +80,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   // LOGOUT
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
+    try {
+      // Call logout API to end session on server
+      await logoutAPI();
+    } catch (error) {
+      console.error("Logout API error:", error);
+      // Continue with local logout even if API fails
+    } finally {
+      // Always clear local storage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setToken(null);
+      setUser(null);
+    }
   };
 
   // UPDATE USER GLOBAL (XP, ecoScore, level, etc.)

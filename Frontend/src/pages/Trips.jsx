@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaRoute, FaClock, FaLeaf, FaStar, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import AnimatedCard, { TripCard } from '../components/common/AnimatedCard';
 import { tripService } from '../services/tripService';
 import { formatDate } from '../utils/formatDate';
 
@@ -119,86 +120,26 @@ export default function Trips() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trips.map((trip, index) => (
-              <motion.div
+              <TripCard
                 key={trip._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-emerald-700/50 transition-all"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 ${getModeColor(trip.mode)} rounded-lg flex items-center justify-center text-2xl`}>
-                      {getModeIcon(trip.mode)}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">{trip.mode} Trip</h3>
-                      <p className="text-slate-400 text-sm">
-                        <FaCalendarAlt className="inline mr-1" />
-                        {formatDate(trip.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(trip.status)}`}>
-                    {trip.status.replace('_', ' ')}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                  <div className="flex items-center gap-2">
-                    <FaMapMarkerAlt className="text-emerald-400" />
-                    <div>
-                      <p className="text-xs text-slate-400">Distance</p>
-                      <p className="font-semibold">{trip.distanceKm.toFixed(1)} km</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FaClock className="text-blue-400" />
-                    <div>
-                      <p className="text-xs text-slate-400">Duration</p>
-                      <p className="font-semibold">
-                        {trip.actualMinutes || trip.etaMinutes} min
-                      </p>
-                    </div>
-                  </div>
-                  {trip.ecoScore > 0 && (
-                    <div className="flex items-center gap-2">
-                      <FaLeaf className="text-green-400" />
-                      <div>
-                        <p className="text-xs text-slate-400">Eco Score</p>
-                        <p className="font-semibold">{trip.ecoScore}/100</p>
-                      </div>
-                    </div>
-                  )}
-                  {trip.xpEarned > 0 && (
-                    <div className="flex items-center gap-2">
-                      <FaStar className="text-yellow-400" />
-                      <div>
-                        <p className="text-xs text-slate-400">XP Earned</p>
-                        <p className="font-semibold">{trip.xpEarned}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {trip.status === 'completed' && (
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-                    <div className="flex items-center gap-4 text-sm text-slate-400">
-                      <span>🌱 {trip.treesGrown || 0} trees</span>
-                      <span>💨 {trip.co2Saved?.toFixed(1) || 0} kg CO₂ saved</span>
-                      <span>⭐ {trip.carbonCreditsEarned || 0} credits</span>
-                    </div>
-                    <Link
-                      to={`/trips/${trip._id}`}
-                      className="text-emerald-400 hover:text-emerald-300 font-medium"
-                    >
-                      View Details →
-                    </Link>
-                  </div>
-                )}
-              </motion.div>
+                trip={{
+                  ...trip,
+                  date: formatDate(trip.createdAt),
+                  distance: trip.distanceKm.toFixed(1),
+                  ecoScore: trip.ecoScore || 0,
+                  rewards: {
+                    trees: trip.treesGrown || 0,
+                    xp: trip.xpEarned || 0,
+                    co2Saved: trip.co2Saved?.toFixed(1) || 0,
+                    credits: trip.carbonCreditsEarned || 0
+                  }
+                }}
+                delay={index * 0.1}
+                clickable
+                onClick={() => window.location.href = `/trips/${trip._id}`}
+              />
             ))}
           </div>
         )}

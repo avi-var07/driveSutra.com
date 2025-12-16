@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaTrophy, FaClock, FaUsers, FaFire, FaLeaf, FaRoute, FaStar } from 'react-icons/fa';
+import AnimatedCard, { StatsCard } from '../components/common/AnimatedCard';
 import { challengeService } from '../services/challengeService';
 import { useAuth } from '../context/AuthContext';
 
@@ -103,33 +104,27 @@ export default function Challenges() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <FaTrophy className="text-yellow-400 text-2xl" />
-              <h3 className="font-semibold">Active Challenges</h3>
-            </div>
-            <p className="text-3xl font-bold text-emerald-400">
-              {user?.activeChallenges?.length || 0}
-            </p>
-          </div>
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <FaFire className="text-red-400 text-2xl" />
-              <h3 className="font-semibold">Completed</h3>
-            </div>
-            <p className="text-3xl font-bold text-emerald-400">
-              {challenges.filter(c => getUserProgress(c._id) >= 100).length}
-            </p>
-          </div>
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <FaStar className="text-blue-400 text-2xl" />
-              <h3 className="font-semibold">Total Rewards</h3>
-            </div>
-            <p className="text-3xl font-bold text-emerald-400">
-              {challenges.reduce((sum, c) => sum + (c.rewards?.xp || 0), 0)} XP
-            </p>
-          </div>
+          <StatsCard
+            icon={<FaTrophy className="text-yellow-400" />}
+            title="Active Challenges"
+            value={user?.activeChallenges?.length || 0}
+            glowColor="yellow"
+            delay={0.1}
+          />
+          <StatsCard
+            icon={<FaFire className="text-red-400" />}
+            title="Completed"
+            value={challenges.filter(c => getUserProgress(c._id) >= 100).length}
+            glowColor="red"
+            delay={0.2}
+          />
+          <StatsCard
+            icon={<FaStar className="text-blue-400" />}
+            title="Total Rewards"
+            value={`${challenges.reduce((sum, c) => sum + (c.rewards?.xp || 0), 0)} XP`}
+            glowColor="blue"
+            delay={0.3}
+          />
         </div>
 
         {/* Filters */}
@@ -164,14 +159,11 @@ export default function Challenges() {
               const completed = progress >= 100;
 
               return (
-                <motion.div
+                <AnimatedCard
                   key={challenge._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`bg-slate-900/50 border rounded-xl p-6 hover:border-emerald-700/50 transition-all ${
-                    completed ? 'border-green-500/50' : 'border-slate-800'
-                  }`}
+                  glowColor={completed ? 'green' : joined ? 'emerald' : 'blue'}
+                  delay={index * 0.1}
+                  className={completed ? 'border-green-500/50' : ''}
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between mb-4">
@@ -299,7 +291,7 @@ export default function Challenges() {
                       Ends {new Date(challenge.endDate).toLocaleDateString()}
                     </span>
                   </div>
-                </motion.div>
+                </AnimatedCard>
               );
             })}
           </div>
