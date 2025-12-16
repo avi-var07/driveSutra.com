@@ -212,20 +212,20 @@ export default function Contact() {
                   <ContactItem
                     icon={FaEnvelope}
                     title="Email"
-                    content="hello@drivesutra.com"
+                    content="supportDriveSutra@gmail.com"
                     subtitle="We typically respond within 24 hours"
                   />
                   <ContactItem
                     icon={FaPhone}
                     title="Phone"
-                    content="+1 (555) 123-4567"
-                    subtitle="Monday - Friday, 9 AM - 6 PM EST"
+                    content="8687883676"
+                    subtitle="Monday - Friday, 9 AM - 6 PM"
                   />
                   <ContactItem
                     icon={FaMapMarkerAlt}
                     title="Address"
-                    content="123 Eco Street, Green City, GC 12345"
-                    subtitle="United States"
+                    content="Lovely Professional University, Jalandhar, Punjab"
+                    subtitle="India"
                   />
                 </div>
               </div>
