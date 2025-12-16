@@ -66,18 +66,18 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-slate-400">
                 <FaEnvelope className="text-emerald-400" />
-                <span className="text-sm">hello@drivesutra.com</span>
+                <span className="text-sm">support@drivesutra.com</span>
               </div>
               <div className="flex items-center gap-3 text-slate-400">
                 <FaPhone className="text-emerald-400" />
-                <span className="text-sm">+1 (555) 123-4567</span>
+                <span className="text-sm">8687883676</span>
               </div>
               <div className="flex items-start gap-3 text-slate-400">
                 <FaMapMarkerAlt className="text-emerald-400 mt-1" />
                 <span className="text-sm">
-                  123 Eco Street<br />
-                  Green City, GC 12345<br />
-                  United States
+                  Lovely Professional University<br />
+                  Jalandhar, Punjab<br />
+                  India
                 </span>
               </div>
             </div>
