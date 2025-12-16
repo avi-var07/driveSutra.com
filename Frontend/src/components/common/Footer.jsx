@@ -66,7 +66,7 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-slate-400">
                 <FaEnvelope className="text-emerald-400" />
-                <span className="text-sm">support@drivesutra.com</span>
+                <span className="text-sm">supportDriveSutra@gmail.com</span>
               </div>
               <div className="flex items-center gap-3 text-slate-400">
                 <FaPhone className="text-emerald-400" />
