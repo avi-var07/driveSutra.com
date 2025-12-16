@@ -4,6 +4,7 @@ import { useAuth } from "./context/AuthContext";
 
 import Home from "./components/common/Home";
 import Navbar from './components/common/Navbar'
+import Footer from './components/common/Footer'
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard";
 import AuthPage from "./pages/AuthPage";
@@ -17,6 +18,8 @@ import TripsPage from "./pages/Trips";
 import ChallengesPage from "./pages/Challenges";
 import ForestPage from "./pages/Forest";
 import AchievementsPage from "./pages/Achievements";
+import AboutPage from "./pages/About";
+import ContactPage from "./pages/Contact";
 
 // Small placeholder used for routes we don't want to import heavy components for now
 const RoutesPlaceholder = ({ name }) => <div className="text-white p-20 text-4xl">{name} Page Placeholder</div>;
@@ -36,9 +39,10 @@ function App() {
   }
 
   return (
-    <div className="w-full min-h-screen relative font-sans bg-black overflow-hidden">
+    <div className="w-full min-h-screen relative font-sans bg-black overflow-hidden flex flex-col">
       <Navbar />
-      <Routes>
+      <main className="flex-1">
+        <Routes>
         {/* HOME PAGE */}
         <Route path="/" element={<Home />} />
 
@@ -67,11 +71,8 @@ function App() {
         <Route path="/forest" element={<ProtectedRoute><ForestPage /></ProtectedRoute>} />
 
         {/* OTHER PAGES */}
-        <Route path="/about" element={
-          <div className="text-white p-20 text-4xl">
-            About Page Content
-          </div>
-        }/>
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
 
         <Route path="/explore" element={
           <div className="text-white p-20 text-4xl">
@@ -90,7 +91,9 @@ function App() {
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+        </Routes>
+      </main>
+      <Footer />
     </div>
   );
 }

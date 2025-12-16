@@ -17,3 +17,9 @@ export const changePasswordAPI = (oldPassword, newPassword) =>
 
 export const updateProfileAPI = (profile) =>
   api.post("/auth/update-profile", profile);
+
+export const logoutAPI = () =>
+  api.post("/auth/logout");
+
+export const getUserSessionsAPI = () =>
+  api.get("/auth/sessions");

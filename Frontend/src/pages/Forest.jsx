@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaTree, FaLeaf, FaSeedling, FaGlobeAmericas, FaWater, FaCloud } from 'react-icons/fa';
+import AnimatedCard, { StatsCard } from '../components/common/AnimatedCard';
 import { useAuth } from '../context/AuthContext';
 import { userService } from '../services/userService';
 
@@ -111,38 +112,38 @@ export default function Forest() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <FaTree className="text-green-400 text-2xl" />
-              <h3 className="font-semibold">Trees Grown</h3>
-            </div>
-            <p className="text-3xl font-bold text-emerald-400">{forestData.treesGrown}</p>
-          </div>
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <FaCloud className="text-blue-400 text-2xl" />
-              <h3 className="font-semibold">CO₂ Saved</h3>
-            </div>
-            <p className="text-3xl font-bold text-emerald-400">{forestData.co2Saved.toFixed(1)} kg</p>
-          </div>
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">{forestStage.icon}</span>
-              <h3 className="font-semibold">Forest Level</h3>
-            </div>
-            <p className="text-3xl font-bold text-emerald-400">{forestData.forestLevel}</p>
-          </div>
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <FaGlobeAmericas className="text-teal-400 text-2xl" />
-              <h3 className="font-semibold">Impact</h3>
-            </div>
-            <p className="text-lg font-bold text-emerald-400">{forestStage.name}</p>
-          </div>
+          <StatsCard
+            icon={<FaTree className="text-green-400" />}
+            title="Trees Grown"
+            value={forestData.treesGrown}
+            glowColor="green"
+            delay={0.1}
+          />
+          <StatsCard
+            icon={<FaCloud className="text-blue-400" />}
+            title="CO₂ Saved"
+            value={`${forestData.co2Saved.toFixed(1)} kg`}
+            glowColor="blue"
+            delay={0.2}
+          />
+          <StatsCard
+            icon={<span className="text-2xl">{forestStage.icon}</span>}
+            title="Forest Level"
+            value={forestData.forestLevel}
+            glowColor="emerald"
+            delay={0.3}
+          />
+          <StatsCard
+            icon={<FaGlobeAmericas className="text-teal-400" />}
+            title="Impact"
+            value={forestStage.name}
+            glowColor="teal"
+            delay={0.4}
+          />
         </div>
 
         {/* Progress to Next Level */}
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 mb-8">
+        <AnimatedCard className="mb-8" glowColor="emerald" delay={0.5}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-lg">Progress to Next Forest Level</h3>
             <span className="text-emerald-400 font-semibold">
@@ -160,7 +161,7 @@ export default function Forest() {
           <p className="text-sm text-slate-400">
             {10 - (forestData.treesGrown % 10)} more trees to reach Level {forestData.forestLevel + 1}
           </p>
-        </div>
+        </AnimatedCard>
       </div>
 
       {/* Forest Visualization */}
@@ -245,7 +246,7 @@ export default function Forest() {
 
       {/* Environmental Impact */}
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+        <AnimatedCard glowColor="green" delay={0.6}>
           <h3 className="font-bold text-xl mb-4 text-center">Your Environmental Impact</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
@@ -267,7 +268,7 @@ export default function Forest() {
               <p className="text-sm text-slate-400">Keep growing your impact!</p>
             </div>
           </div>
-        </div>
+        </AnimatedCard>
       </div>
     </div>
   );
