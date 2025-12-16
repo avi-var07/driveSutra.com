@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import User from '../models/User.js';
 import Trip from '../models/Trip.js';
 import Reward from '../models/Reward.js';
@@ -7,7 +9,10 @@ import UserReward from '../models/UserReward.js';
 import Challenge from '../models/Challenge.js';
 import Achievement from '../models/Achievement.js';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 async function verifyDatabase() {
   try {
