@@ -149,7 +149,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <StatsCards stats={dashboardData.stats} />
+        <StatsCards stats={dashboardData.stats} userData={dashboardData.userData} />
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

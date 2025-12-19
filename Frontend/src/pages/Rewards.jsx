@@ -25,7 +25,7 @@ const leaderboardTypes = [
 ];
 
 export default function Rewards() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('rewards');
   const [rewards, setRewards] = useState([]);
   const [userRewards, setUserRewards] = useState([]);
@@ -38,6 +38,10 @@ export default function Rewards() {
 
   useEffect(() => {
     fetchData();
+    // Refresh user data to get latest credits
+    if (refreshUser) {
+      refreshUser();
+    }
   }, [activeTab, leaderboardType]);
 
   const fetchData = async () => {
@@ -48,6 +52,13 @@ export default function Rewards() {
       if (activeTab === 'rewards') {
         const rewardsResponse = await getAvailableRewards();
         if (rewardsResponse.success) {
+          console.log('User stats:', { 
+            credits: user?.carbonCredits, 
+            ecoScore: user?.ecoScore, 
+            level: user?.level 
+          });
+          console.log('First reward:', rewardsResponse.rewards[0]);
+          console.log('First reward canRedeem:', rewardsResponse.rewards[0]?.canRedeem);
           setRewards(rewardsResponse.rewards);
         }
       } else if (activeTab === 'my-rewards') {
@@ -76,11 +87,15 @@ export default function Rewards() {
       
       const response = await redeemReward(rewardId);
       if (response.success) {
-        setSuccess('Reward redeemed successfully! 🎉');
-        // Refresh rewards to update user's carbon credits
+        setSuccess('Reward redeemed successfully! Check your email for confirmation. 🎉');
+        // Refresh user data to update credits
+        if (refreshUser) {
+          await refreshUser();
+        }
+        // Refresh rewards to update eligibility
         fetchData();
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(''), 3000);
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccess(''), 5000);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to redeem reward');
@@ -238,15 +253,35 @@ export default function Rewards() {
                     <motion.div
                       key={reward._id}
                       initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
+                      animate={reward.canRedeem ? {
+                        opacity: 1,
+                        y: 0,
+                        x: [0, -2, 2, -2, 2, 0],
+                        transition: { 
+                          opacity: { delay: index * 0.1 },
+                          y: { delay: index * 0.1 },
+                          x: { duration: 0.5, repeat: Infinity, repeatDelay: 2 }
+                        }
+                      } : {
+                        opacity: 1,
+                        y: 0,
+                        transition: { delay: index * 0.1 }
+                      }}
                       className={`relative bg-slate-800/30 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 hover:border-slate-600/50 transition-all duration-300 ${
                         reward.featured ? 'ring-2 ring-yellow-500/50' : ''
+                      } ${
+                        reward.canRedeem ? 'border-emerald-500/50 shadow-lg shadow-emerald-500/20' : ''
                       }`}
                     >
                       {reward.featured && (
                         <div className="absolute -top-3 left-6 px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold rounded-full">
                           ⭐ FEATURED
+                        </div>
+                      )}
+                      
+                      {reward.canRedeem && (
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center animate-bounce">
+                          <span className="text-white text-xs">✓</span>
                         </div>
                       )}
                       
@@ -287,16 +322,34 @@ export default function Rewards() {
                       
                       {/* Requirements */}
                       <div className="mb-4 space-y-1">
-                        {reward.ecoScoreRequired > 0 && (
-                          <div className="text-xs text-slate-400">
-                            Min EcoScore: {reward.ecoScoreRequired}
-                          </div>
-                        )}
-                        {reward.levelRequired > 1 && (
-                          <div className="text-xs text-slate-400">
-                            Min Level: {reward.levelRequired}
-                          </div>
-                        )}
+                        <div className="text-xs text-slate-400">Requirements:</div>
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          <span className={`px-2 py-1 rounded ${
+                            (user?.carbonCredits || 0) >= reward.carbonCreditsCost 
+                              ? 'bg-green-500/20 text-green-300' 
+                              : 'bg-red-500/20 text-red-300'
+                          }`}>
+                            {reward.carbonCreditsCost} Credits
+                          </span>
+                          {reward.ecoScoreRequired > 0 && (
+                            <span className={`px-2 py-1 rounded ${
+                              (user?.ecoScore || 0) >= reward.ecoScoreRequired 
+                                ? 'bg-green-500/20 text-green-300' 
+                                : 'bg-red-500/20 text-red-300'
+                            }`}>
+                              EcoScore {reward.ecoScoreRequired}
+                            </span>
+                          )}
+                          {reward.levelRequired > 1 && (
+                            <span className={`px-2 py-1 rounded ${
+                              (user?.level || 0) >= reward.levelRequired 
+                                ? 'bg-green-500/20 text-green-300' 
+                                : 'bg-red-500/20 text-red-300'
+                            }`}>
+                              Level {reward.levelRequired}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <button

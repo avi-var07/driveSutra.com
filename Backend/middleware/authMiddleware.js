@@ -57,4 +57,39 @@ export const protect = async (req, res, next) => {
   }
 };
 
+// Optional authentication - attaches user if token is present, but doesn't fail if not
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      // No token provided, continue without user
+      return next();
+    }
+
+    const token = authHeader.split(" ")[1];
+    
+    if (!token) {
+      // No token, continue without user
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id).select("-password");
+    if (user) {
+      req.user = user; // attach full user object if found
+      console.log('[OPTIONAL AUTH] User authenticated:', user._id);
+    } else {
+      console.log('[OPTIONAL AUTH] User not found for token');
+    }
+    
+    next();
+  } catch (err) {
+    console.error("[OPTIONAL AUTH] Error:", err.message);
+    // Don't fail on error, just continue without user
+    next();
+  }
+};
+
 export default protect;

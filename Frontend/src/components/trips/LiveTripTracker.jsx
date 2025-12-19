@@ -61,11 +61,29 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
   const [fitnessData, setFitnessData] = useState(null);
   const [googleFitConnected, setGoogleFitConnected] = useState(false);
   const [showFitnessStats, setShowFitnessStats] = useState(false);
+  const [tripStarted, setTripStarted] = useState(false);
   
   const watchIdRef = useRef(null);
   const startTimeRef = useRef(null);
   const lastPositionRef = useRef(null);
   const speedsRef = useRef([]);
+
+  // Check if trip is already in progress and restore state
+  useEffect(() => {
+    const savedTripState = localStorage.getItem(`trip_${trip._id}`);
+    if (savedTripState) {
+      const state = JSON.parse(savedTripState);
+      if (state.isTracking && trip.status === 'in_progress') {
+        setIsTracking(true);
+        setTripStarted(true);
+        setTripPath(state.tripPath || []);
+        setTripStats(state.tripStats || { distance: 0, duration: 0, avgSpeed: 0, maxSpeed: 0 });
+        startTimeRef.current = state.startTime || Date.now();
+        speedsRef.current = state.speeds || [];
+        console.log('Restored trip state from localStorage');
+      }
+    }
+  }, [trip._id, trip.status]);
 
   // Get user's current location
   useEffect(() => {
@@ -74,6 +92,12 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         (position) => {
           const pos = [position.coords.latitude, position.coords.longitude];
           setCurrentPosition(pos);
+          
+          // If trip is in progress, start tracking immediately
+          if (trip.status === 'in_progress' && !isTracking) {
+            console.log('Trip in progress, starting tracking...');
+            startPositionTracking();
+          }
         },
         (error) => {
           console.error('Error getting location:', error);
@@ -83,7 +107,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
     } else {
       setError('Geolocation is not supported by this browser.');
     }
-  }, []);
+  }, [trip.status]);
 
   // Calculate distance between two points
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -95,6 +119,23 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
               Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
+  };
+
+  // Save trip state to localStorage
+  const saveTripState = () => {
+    const state = {
+      isTracking,
+      tripPath,
+      tripStats,
+      startTime: startTimeRef.current,
+      speeds: speedsRef.current
+    };
+    localStorage.setItem(`trip_${trip._id}`, JSON.stringify(state));
+  };
+
+  // Clear trip state from localStorage
+  const clearTripState = () => {
+    localStorage.removeItem(`trip_${trip._id}`);
   };
 
   // Connect to Google Fit for walking/cycling trips
@@ -112,11 +153,113 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
     }
   };
 
+  // Start position tracking function
+  const startPositionTracking = () => {
+    if (!navigator.geolocation || watchIdRef.current) return;
+
+    console.log('Starting position tracking...');
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const newPos = [position.coords.latitude, position.coords.longitude];
+        const speed = position.coords.speed ? Math.max(0, position.coords.speed * 3.6) : 0; // Convert m/s to km/h
+        const accuracy = position.coords.accuracy;
+        
+        console.log(`Position update: ${newPos[0].toFixed(6)}, ${newPos[1].toFixed(6)}, Speed: ${speed.toFixed(1)} km/h, Accuracy: ${accuracy}m`);
+        
+        // Only update if accuracy is reasonable (less than 100 meters)
+        if (accuracy > 100) {
+          console.log('Low accuracy position ignored:', accuracy);
+          return;
+        }
+        
+        setCurrentPosition(newPos);
+        
+        // Update trip path
+        setTripPath(prev => {
+          const lastPos = prev[prev.length - 1];
+          if (lastPos && calculateDistance(lastPos[0], lastPos[1], newPos[0], newPos[1]) < 0.003) {
+            return prev; // Don't add if movement is less than 3 meters
+          }
+          const newPath = [...prev, newPos];
+          return newPath;
+        });
+        
+        // Update stats with better calculation
+        if (lastPositionRef.current && startTimeRef.current) {
+          const distance = calculateDistance(
+            lastPositionRef.current[0], lastPositionRef.current[1],
+            newPos[0], newPos[1]
+          );
+          
+          // Only update if there's meaningful movement (more than 2 meters)
+          if (distance > 0.002) {
+            setTripStats(prev => {
+              const newDistance = prev.distance + distance;
+              const duration = (Date.now() - startTimeRef.current) / 1000 / 60; // minutes
+              const avgSpeed = duration > 0.1 ? (newDistance / duration) * 60 : 0; // km/h
+              
+              // Track speeds for max speed (use GPS speed if available, otherwise calculated)
+              const currentSpeed = speed > 0 ? speed : (distance > 0 && duration > 0 ? (distance / (duration / 60)) : 0);
+              if (currentSpeed > 0 && currentSpeed < 200) { // Sanity check
+                speedsRef.current.push(currentSpeed);
+              }
+              const maxSpeed = Math.max(prev.maxSpeed, currentSpeed);
+              
+              const newStats = {
+                distance: newDistance,
+                duration,
+                avgSpeed,
+                maxSpeed
+              };
+              
+              console.log('Stats updated:', newStats);
+              return newStats;
+            });
+            
+            lastPositionRef.current = newPos;
+          }
+        } else {
+          lastPositionRef.current = newPos;
+        }
+        
+        // Save state periodically
+        if (isTracking) {
+          saveTripState();
+        }
+      },
+      (error) => {
+        console.error('Error watching position:', error);
+        setError('Error tracking location. Please check your GPS settings and ensure you\'re outdoors for better signal.');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 1000
+      }
+    );
+  };
+
   // Start trip tracking
   const handleStartTrip = async () => {
     try {
       setLoading(true);
       setError('');
+      
+      // Check if trip is already started
+      if (trip.status === 'in_progress') {
+        console.log('Trip already in progress, just starting tracking...');
+        setIsTracking(true);
+        setTripStarted(true);
+        if (!startTimeRef.current) {
+          startTimeRef.current = Date.now();
+        }
+        if (currentPosition) {
+          setTripPath(prev => prev.length === 0 ? [currentPosition] : prev);
+          lastPositionRef.current = currentPosition;
+        }
+        startPositionTracking();
+        return;
+      }
       
       // Connect to Google Fit for walking/cycling
       if (trip.mode === 'WALK' || trip.mode === 'CYCLE') {
@@ -127,81 +270,31 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
       await startTrip(trip._id);
       
       setIsTracking(true);
+      setTripStarted(true);
       startTimeRef.current = Date.now();
-      setTripPath([currentPosition]);
-      lastPositionRef.current = currentPosition;
       
-      // Start watching position
-      if (navigator.geolocation) {
-        watchIdRef.current = navigator.geolocation.watchPosition(
-          (position) => {
-            const newPos = [position.coords.latitude, position.coords.longitude];
-            const speed = position.coords.speed ? (position.coords.speed * 3.6) : 0; // Convert m/s to km/h
-            const accuracy = position.coords.accuracy;
-            
-            // Only update if accuracy is reasonable (less than 50 meters)
-            if (accuracy > 50) {
-              console.log('Low accuracy position ignored:', accuracy);
-              return;
-            }
-            
-            setCurrentPosition(newPos);
-            setTripPath(prev => {
-              // Avoid adding duplicate positions
-              const lastPos = prev[prev.length - 1];
-              if (lastPos && calculateDistance(lastPos[0], lastPos[1], newPos[0], newPos[1]) < 0.005) {
-                return prev; // Don't add if movement is less than 5 meters
-              }
-              return [...prev, newPos];
-            });
-            
-            // Update stats
-            if (lastPositionRef.current) {
-              const distance = calculateDistance(
-                lastPositionRef.current[0], lastPositionRef.current[1],
-                newPos[0], newPos[1]
-              );
-              
-              // Only update if there's meaningful movement
-              if (distance > 0.001) { // More than 1 meter
-                setTripStats(prev => {
-                  const newDistance = prev.distance + distance;
-                  const duration = (Date.now() - startTimeRef.current) / 1000 / 60; // minutes
-                  const avgSpeed = duration > 0 ? (newDistance / duration) * 60 : 0; // km/h
-                  
-                  // Track speeds for max speed
-                  if (speed > 0) {
-                    speedsRef.current.push(speed);
-                  }
-                  const maxSpeed = Math.max(prev.maxSpeed, speed);
-                  
-                  return {
-                    distance: newDistance,
-                    duration,
-                    avgSpeed,
-                    maxSpeed
-                  };
-                });
-                
-                lastPositionRef.current = newPos;
-              }
-            } else {
-              lastPositionRef.current = newPos;
-            }
-          },
-          (error) => {
-            console.error('Error watching position:', error);
-            setError('Error tracking location. Please check your GPS settings and ensure you\'re outdoors for better signal.');
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 2000
-          }
-        );
+      if (currentPosition) {
+        setTripPath([currentPosition]);
+        lastPositionRef.current = currentPosition;
       }
+      
+      // Reset stats
+      setTripStats({
+        distance: 0,
+        duration: 0,
+        avgSpeed: 0,
+        maxSpeed: 0
+      });
+      speedsRef.current = [];
+      
+      // Start position tracking
+      startPositionTracking();
+      
+      // Save initial state
+      saveTripState();
+      
     } catch (err) {
-      setError('Failed to start trip tracking');
+      setError('Failed to start trip tracking: ' + err.message);
       console.error('Start trip error:', err);
     } finally {
       setLoading(false);
@@ -236,7 +329,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
 
       // Complete trip on backend
       const completionData = {
-        actualMinutes: tripStats.duration,
+        actualMinutes: Math.max(1, tripStats.duration), // Ensure at least 1 minute
         verification: {
           avgSpeed: tripStats.avgSpeed,
           maxSpeed: tripStats.maxSpeed,
@@ -251,9 +344,14 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         } : null
       };
       
+      console.log('Completing trip with data:', completionData);
       const result = await completeTrip(trip._id, completionData);
       
       setIsTracking(false);
+      setTripStarted(false);
+      
+      // Clear saved state
+      clearTripState();
       
       // Call parent callback with results
       if (onTripComplete) {
@@ -261,12 +359,28 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
       }
       
     } catch (err) {
-      setError('Failed to complete trip');
+      setError('Failed to complete trip: ' + err.message);
       console.error('Complete trip error:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Update duration every second when tracking
+  useEffect(() => {
+    let interval;
+    if (isTracking && startTimeRef.current) {
+      interval = setInterval(() => {
+        setTripStats(prev => ({
+          ...prev,
+          duration: (Date.now() - startTimeRef.current) / 1000 / 60 // minutes
+        }));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTracking]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -440,13 +554,24 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
             </Marker>
           )}
           
-          {/* Trip path */}
+          {/* Planned route (if available) */}
+          {trip.routeGeometry && trip.routeGeometry.coordinates && (
+            <Polyline
+              positions={trip.routeGeometry.coordinates.map(coord => [coord[1], coord[0]])}
+              color={trip.color || '#6B7280'}
+              weight={3}
+              opacity={0.5}
+              dashArray="10, 10"
+            />
+          )}
+          
+          {/* Actual trip path */}
           {tripPath.length > 1 && (
             <Polyline
               positions={tripPath}
               color="#10B981"
-              weight={4}
-              opacity={0.8}
+              weight={5}
+              opacity={0.9}
             />
           )}
         </MapContainer>
@@ -488,11 +613,11 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleStartTrip}
-              disabled={loading}
+              disabled={loading || !currentPosition}
               className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
             >
               <FaPlay className="text-lg" />
-              {loading ? 'Starting...' : 'Start Trip'}
+              {loading ? 'Starting...' : !currentPosition ? 'Getting Location...' : trip.status === 'in_progress' ? 'Resume Tracking' : 'Start Trip'}
             </motion.button>
           ) : (
             <motion.button
