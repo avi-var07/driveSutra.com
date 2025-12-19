@@ -74,7 +74,7 @@ const tripSchema = new mongoose.Schema({
   // Route Geometry & Metadata
   routeGeometry: { type: Object }, // GeoJSON or encoded polyline
   metadata: { 
-    source: { type: String, default: "ORS" }, // "ORS" or "OSRM"
+    source: { type: String, default: "MAPPLS" }, // "MAPPLS" or "OSRM"
     apiResponse: { type: Object }
   }
 }, { timestamps: true })
