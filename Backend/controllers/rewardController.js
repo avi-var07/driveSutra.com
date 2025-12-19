@@ -7,6 +7,7 @@ import { sendRewardConfirmationEmail } from '../utils/emailService.js';
 // Get all available rewards
 export async function getAvailableRewards(req, res) {
   try {
+    // Get fresh user data if authenticated
     const user = req.user ? await User.findById(req.user._id) : null;
     
     const rewards = await Reward.find({
@@ -21,19 +22,29 @@ export async function getAvailableRewards(req, res) {
       ]
     }).sort({ featured: -1, popularity: -1, carbonCreditsCost: 1 });
 
+    console.log('Rewards found:', rewards.length);
+
     // Add user eligibility info if authenticated
     const rewardsWithEligibility = rewards.map(reward => {
       const rewardObj = reward.toObject();
       
       if (user) {
-        rewardObj.canRedeem = (
-          user.carbonCredits >= reward.carbonCreditsCost &&
-          user.ecoScore >= reward.ecoScoreRequired &&
-          user.level >= reward.levelRequired
-        );
+        const hasCredits = user.carbonCredits >= reward.carbonCreditsCost;
+        const hasEcoScore = user.ecoScore >= (reward.ecoScoreRequired || 0);
+        const hasLevel = user.level >= (reward.levelRequired || 1);
+        const canRedeem = hasCredits && hasEcoScore && hasLevel;
+        
+        rewardObj.canRedeem = canRedeem;
         rewardObj.userCarbonCredits = user.carbonCredits;
         rewardObj.userEcoScore = user.ecoScore;
         rewardObj.userLevel = user.level;
+        
+        // Add requirement details for debugging
+        rewardObj.requirements = {
+          credits: reward.carbonCreditsCost,
+          ecoScore: reward.ecoScoreRequired || 0,
+          level: reward.levelRequired || 1
+        };
       } else {
         rewardObj.canRedeem = false;
       }
@@ -127,8 +138,9 @@ export async function redeemReward(req, res) {
     // Send confirmation email
     try {
       await sendRewardConfirmationEmail(user, userReward, reward);
+      console.log('✅ Reward confirmation email process completed');
     } catch (emailError) {
-      console.error('Failed to send reward confirmation email:', emailError);
+      console.error('❌ Failed to send reward confirmation email:', emailError);
       // Don't fail the reward redemption if email fails
     }
     

@@ -103,6 +103,31 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("user", JSON.stringify(updated));
   };
 
+  // REFRESH USER DATA from server
+  const refreshUser = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/users/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          const updatedUser = { ...user, ...data.user };
+          setUser(updatedUser);
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          return updatedUser;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+    return user;
+  };
+
   return (
     <AuthContext.Provider 
       value={{ 
@@ -113,6 +138,7 @@ export const AuthProvider = ({ children }) => {
         register, 
         logout, 
         updateUser,
+        refreshUser,
         isAuthenticated: !!user && !!token
       }}
     >

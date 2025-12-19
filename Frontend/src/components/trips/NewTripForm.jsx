@@ -5,6 +5,8 @@ import { getRouteOptions, createTrip } from '../../services/tripService'
 import { FaBus, FaBicycle, FaCar } from 'react-icons/fa'
 import { MdLocationOn, MdCheckCircle, MdError } from 'react-icons/md'
 import LocationPicker from './LocationPicker'
+import CurrentLocationPicker from './CurrentLocationPicker'
+import EnhancedRouteDisplay from './EnhancedRouteDisplay'
 
 const modeLabels = {
   PUBLIC: { icon: <FaBus />, label: 'Public Transport', color: 'from-blue-500 to-blue-600', eco: 95 },
@@ -29,6 +31,7 @@ export default function NewTripForm() {
   const navigate = useNavigate()
   const [start, setStart] = useState(null)
   const [end, setEnd] = useState(null)
+  const [useCurrentLocation, setUseCurrentLocation] = useState(false)
   const [loading, setLoading] = useState(false)
   const [routeOptions, setRouteOptions] = useState(null)
   const [selectedOption, setSelectedOption] = useState(null)
@@ -156,6 +159,26 @@ export default function NewTripForm() {
         >
           {/* Location Selection */}
           <motion.div variants={itemVariants} className="space-y-6 mb-8">
+            {/* Current Location Toggle */}
+            <div className="flex items-center justify-between p-4 bg-slate-800/30 rounded-xl border border-slate-700">
+              <div>
+                <h3 className="font-semibold text-white">Use Current Location as Start</h3>
+                <p className="text-sm text-slate-400">Automatically detect your current position</p>
+              </div>
+              <button
+                onClick={() => setUseCurrentLocation(!useCurrentLocation)}
+                className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${
+                  useCurrentLocation ? 'bg-emerald-500' : 'bg-slate-600'
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${
+                    useCurrentLocation ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Start Location */}
               <motion.div
@@ -164,23 +187,30 @@ export default function NewTripForm() {
               >
                 <label className="block text-sm font-semibold text-emerald-400 mb-2 flex items-center gap-2">
                   <MdLocationOn className="text-lg" />
-                  Start Location
+                  Start Location {useCurrentLocation && '(Current)'}
                 </label>
-                <motion.button
-                  onClick={() => setActiveLocationPicker('start')}
-                  className="w-full p-4 rounded-xl bg-slate-700/30 border-2 border-slate-600 hover:border-emerald-400/50 text-left transition-all duration-300 hover:bg-slate-700/50"
-                >
-                  {start ? (
-                    <div>
-                      <div className="font-semibold text-white">{start.name || 'Custom Location'}</div>
-                      <div className="text-xs text-slate-400">
-                        {start.lat.toFixed(4)}° N, {start.lng.toFixed(4)}° E
+                {useCurrentLocation ? (
+                  <CurrentLocationPicker
+                    onLocationSelect={setStart}
+                    selectedLocation={start}
+                  />
+                ) : (
+                  <motion.button
+                    onClick={() => setActiveLocationPicker('start')}
+                    className="w-full p-4 rounded-xl bg-slate-700/30 border-2 border-slate-600 hover:border-emerald-400/50 text-left transition-all duration-300 hover:bg-slate-700/50"
+                  >
+                    {start ? (
+                      <div>
+                        <div className="font-semibold text-white">{start.name || 'Custom Location'}</div>
+                        <div className="text-xs text-slate-400">
+                          {start.lat.toFixed(4)}° N, {start.lng.toFixed(4)}° E
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-slate-400">Click to select start location</div>
-                  )}
-                </motion.button>
+                    ) : (
+                      <div className="text-slate-400">Click to select start location</div>
+                    )}
+                  </motion.button>
+                )}
               </motion.div>
 
               {/* End Location */}
@@ -279,9 +309,9 @@ export default function NewTripForm() {
             )}
           </AnimatePresence>
 
-          {/* Travel Mode Options - Only show after route options calculated */}
+          {/* Enhanced Route Display */}
           <AnimatePresence>
-            {routeOptions && (
+            {routeOptions && start && end && (
               <motion.div
                 variants={itemVariants}
                 initial={{ opacity: 0, y: 20 }}
@@ -289,50 +319,14 @@ export default function NewTripForm() {
                 exit={{ opacity: 0, y: 20 }}
                 className="mb-8"
               >
-                <label className="block text-sm font-semibold text-slate-300 mb-4">
-                  Choose Your Travel Mode
-                </label>
-                <div className="space-y-4">
-                  {routeOptions.map((option, index) => (
-                    <motion.button
-                      key={option.mode}
-                      onClick={() => handleSelectOption(option)}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`w-full p-4 rounded-xl transition-all duration-300 text-left ${
-                        selectedOption?.mode === option.mode
-                          ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border-2 border-emerald-400 shadow-lg'
-                          : 'bg-slate-700/30 border-2 border-slate-600 hover:border-slate-500'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="text-3xl">{option.icon}</div>
-                          <div>
-                            <div className="font-semibold text-white">{option.mode}</div>
-                            <div className="text-sm text-slate-400">{option.ecoLabel}</div>
-                            {option.suggestedSpeedRange && (
-                              <div className="text-xs text-yellow-400">
-                                Suggested: {option.suggestedSpeedRange}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-emerald-400">
-                            {option.distanceKm.toFixed(1)} km
-                          </div>
-                          <div className="text-sm text-slate-400">
-                            {Math.round(option.durationMinutes)} min
-                          </div>
-                          <div className="text-sm font-semibold text-teal-400">
-                            EcoScore: {option.estimatedEcoScore}
-                          </div>
-                        </div>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
+                <EnhancedRouteDisplay
+                  routes={routeOptions}
+                  startLocation={start}
+                  endLocation={end}
+                  weather={weatherData}
+                  selectedRoute={selectedOption}
+                  onRouteSelect={handleSelectOption}
+                />
               </motion.div>
             )}
           </AnimatePresence>
