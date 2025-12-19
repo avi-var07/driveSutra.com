@@ -351,26 +351,36 @@ export const googleSignIn = async (req, res) => {
     const { idToken, profile } = req.body;
 
     if (!idToken || !profile) {
-      return res.status(400).json({ success: false, message: "Missing Google authentication data" });
+      return res.status(400).json({ 
+        success: false, 
+        message: "Missing Google authentication data" 
+      });
     }
 
     // Verify Google ID token
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
     
+    let payload;
     try {
       const ticket = await client.verifyIdToken({
         idToken: idToken,
         audience: process.env.GOOGLE_CLIENT_ID,
       });
       
-      const payload = ticket.getPayload();
+      payload = ticket.getPayload();
       
       if (!payload || payload.email !== profile.email) {
-        return res.status(400).json({ success: false, message: "Invalid Google token" });
+        return res.status(400).json({ 
+          success: false, 
+          message: "Invalid Google token" 
+        });
       }
     } catch (verifyError) {
-      console.error("Google token verification failed:", verifyError);
-      return res.status(400).json({ success: false, message: "Invalid Google token" });
+      console.error("Google token verification failed:", verifyError.message);
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid Google token" 
+      });
     }
 
     // Check if user exists
@@ -385,13 +395,14 @@ export const googleSignIn = async (req, res) => {
     } else {
       // Create new user
       user = await User.create({
-        firstName: profile.firstName,
-        lastName: profile.lastName,
+        firstName: profile.firstName || profile.email.split('@')[0],
+        lastName: profile.lastName || '',
         email: profile.email,
         password: 'google_auth_' + Date.now(), // Placeholder password
         avatar: profile.avatar || '',
         isVerified: true, // Google accounts are pre-verified
-        googleId: profile.id
+        googleId: profile.id,
+        carbonCredits: 25 // Welcome bonus
       });
     }
 
@@ -428,7 +439,10 @@ export const googleSignIn = async (req, res) => {
     });
   } catch (error) {
     console.error("Google Sign-in Error:", error);
-    return res.status(500).json({ success: false, message: "Google sign-in failed" });
+    return res.status(500).json({ 
+      success: false, 
+      message: "Google sign-in failed: " + error.message 
+    });
   }
 };
 
