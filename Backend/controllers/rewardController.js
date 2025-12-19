@@ -2,6 +2,7 @@ import Reward from '../models/Reward.js';
 import UserReward from '../models/UserReward.js';
 import User from '../models/User.js';
 import crypto from 'crypto';
+import { sendRewardConfirmationEmail } from '../utils/emailService.js';
 
 // Get all available rewards
 export async function getAvailableRewards(req, res) {
@@ -123,9 +124,17 @@ export async function redeemReward(req, res) {
     // Populate reward details for response
     await userReward.populate('reward');
     
+    // Send confirmation email
+    try {
+      await sendRewardConfirmationEmail(user, userReward, reward);
+    } catch (emailError) {
+      console.error('Failed to send reward confirmation email:', emailError);
+      // Don't fail the reward redemption if email fails
+    }
+    
     return res.json({ 
       success: true, 
-      message: 'Reward redeemed successfully!',
+      message: 'Reward redeemed successfully! Check your email for confirmation.',
       userReward,
       remainingCredits: user.carbonCredits
     });

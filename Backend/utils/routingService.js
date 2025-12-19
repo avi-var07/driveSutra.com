@@ -1,17 +1,56 @@
-// OpenRouteService routing helper (ESM)
-// Uses ORS API with fallback to OSRM for reliability
-
-const ORS_BASE = 'https://api.openrouteservice.org/v2/directions';
+// Enhanced routing service with OSRM and fallback
+// Includes route colors, speed suggestions, and better geometry
 
 // Profile speeds (km/h) for calculating different durations per mode
 const SPEED_PROFILES = {
-  'foot-walking': 5,      // Walking: 5 km/h
-  'cycling-regular': 15,  // Cycling: 15 km/h
-  'driving-car': 50       // Driving: 50 km/h average
+  'walking': 5,      // Walking: 5 km/h
+  'biking': 15,      // Cycling: 15 km/h
+  'driving': 50      // Driving: 50 km/h average
 };
 
+// Route colors for different transport modes
+const ROUTE_COLORS = {
+  'walking': '#4CAF50',    // Green for walking
+  'biking': '#2196F3',     // Blue for cycling
+  'driving': '#FF9800'     // Orange for driving
+};
+
+// Speed suggestions based on route and conditions
+function calculateSpeedSuggestion(distanceKm, profile, weather = null) {
+  const baseSpeed = SPEED_PROFILES[profile] || 50;
+  
+  if (profile === 'driving') {
+    // Suggest optimal speed range for eco-driving
+    const minSpeed = Math.max(30, baseSpeed - 15);
+    const maxSpeed = Math.min(80, baseSpeed + 15);
+    
+    // Adjust for weather conditions
+    let weatherAdjustment = 0;
+    if (weather?.condition) {
+      const weatherFactors = {
+        'rain': -10,
+        'snow': -15,
+        'fog': -10,
+        'storm': -20,
+        'clear': 0,
+        'cloudy': -5
+      };
+      weatherAdjustment = weatherFactors[weather.condition] || 0;
+    }
+    
+    return {
+      min: Math.max(25, minSpeed + weatherAdjustment),
+      max: Math.max(35, maxSpeed + weatherAdjustment),
+      optimal: Math.round((minSpeed + maxSpeed) / 2 + weatherAdjustment),
+      ecoTip: weatherAdjustment < 0 ? 'Drive slower due to weather conditions' : 'Maintain steady speed for best fuel efficiency'
+    };
+  }
+  
+  return null; // No speed suggestions for walking/biking
+}
+
 // Calculate straight-line distance and estimate route
-function calculateStraightLineRoute(startLngLat, endLngLat, profile = 'driving-car') {
+function calculateStraightLineRoute(startLngLat, endLngLat, profile = 'driving') {
   try {
     console.log(`[FALLBACK] Using straight-line calculation for profile: ${profile}`);
     
@@ -30,9 +69,9 @@ function calculateStraightLineRoute(startLngLat, endLngLat, profile = 'driving-c
     
     // Apply route factor (roads are not straight lines)
     const routeFactors = {
-      'foot-walking': 1.2,    // 20% longer for pedestrian paths
-      'cycling-regular': 1.3, // 30% longer for bike routes
-      'driving-car': 1.4      // 40% longer for road routes
+      'walking': 1.2,    // 20% longer for pedestrian paths
+      'biking': 1.3,     // 30% longer for bike routes
+      'driving': 1.4     // 40% longer for road routes
     };
     
     const routeFactor = routeFactors[profile] || 1.4;
@@ -48,6 +87,8 @@ function calculateStraightLineRoute(startLngLat, endLngLat, profile = 'driving-c
       distanceKm: distance,
       durationMinutes: durationMinutes,
       geometry: null, // No geometry for fallback
+      color: ROUTE_COLORS[profile] || '#666666',
+      speedSuggestion: calculateSpeedSuggestion(distance, profile),
       raw: { fallback: true, straightDistance, routeFactor },
       source: 'FALLBACK'
     };
@@ -57,17 +98,18 @@ function calculateStraightLineRoute(startLngLat, endLngLat, profile = 'driving-c
   }
 }
 
-// OSRM fallback routing with timeout and retry
-async function getRouteOSRM(startLngLat, endLngLat, profile = 'driving-car') {
-  const osrmProfile = profile.includes('cycling') ? 'cycling' : profile.includes('foot') ? 'foot' : 'driving';
+// Enhanced OSRM routing with geometry and colors
+async function getRouteOSRM(startLngLat, endLngLat, profile = 'driving', weather = null) {
+  const osrmProfile = profile.includes('biking') ? 'cycling' : profile.includes('walking') ? 'foot' : 'driving';
   
   try {
-    console.log(`[OSRM] Fallback routing for profile: ${profile}`);
-    const url = `https://router.project-osrm.org/route/v1/${osrmProfile}/${startLngLat[0]},${startLngLat[1]};${endLngLat[0]},${endLngLat[1]}?overview=false`;
+    console.log(`[OSRM] Enhanced routing for profile: ${profile}`);
+    // Request full geometry for map display
+    const url = `https://router.project-osrm.org/route/v1/${osrmProfile}/${startLngLat[0]},${startLngLat[1]};${endLngLat[0]},${endLngLat[1]}?overview=full&geometries=geojson&steps=true`;
     
     // Add timeout to prevent hanging
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
     
     const res = await fetch(url, { 
       signal: controller.signal,
@@ -87,99 +129,84 @@ async function getRouteOSRM(startLngLat, endLngLat, profile = 'driving-car') {
     if (!route) throw new Error('No route returned from OSRM');
     
     const distance = (route.distance || 0) / 1000; // convert to km
-    const profileSpeed = SPEED_PROFILES[profile] || 50;
-    const durationMinutes = (distance / profileSpeed) * 60;
+    const duration = (route.duration || 0) / 60; // convert to minutes
     
-    console.log(`[OSRM] Success: Distance=${distance}km, Duration=${durationMinutes}min`);
+    console.log(`[OSRM] Success: Distance=${distance.toFixed(2)}km, Duration=${duration.toFixed(1)}min`);
     
     return {
       distanceKm: distance,
-      durationMinutes: durationMinutes,
+      durationMinutes: duration,
       geometry: route.geometry || null,
+      color: ROUTE_COLORS[profile] || '#666666',
+      speedSuggestion: calculateSpeedSuggestion(distance, profile, weather),
+      steps: route.legs?.[0]?.steps || [],
       raw: data,
       source: 'OSRM'
     };
   } catch (err) {
-    console.error(`[OSRM] Fallback failed:`, err.message);
+    console.error(`[OSRM] Enhanced routing failed:`, err.message);
     // If OSRM fails, use straight-line calculation
     return calculateStraightLineRoute(startLngLat, endLngLat, profile);
   }
 }
 
-export async function getRouteORS(startLngLat, endLngLat, profile = 'driving-car') {
-  const apiKey = process.env.ORS_API_KEY;
+// Try Mappls first, then fallback to OSRM
+export async function getRouteORS(startLngLat, endLngLat, profile = 'driving-car', weather = null) {
+  const mapplsProfile = profile.replace('foot-', '').replace('-regular', '').replace('-car', '');
+  const apiKey = process.env.MAPPLS_API_KEY;
 
-  // Try ORS first if key is available and valid
-  if (apiKey && apiKey.trim().length > 10 && !apiKey.includes('your_')) {
+  // Try Mappls first if key is available and valid
+  if (apiKey && apiKey.trim().length > 10 && !apiKey.includes('your_') && !apiKey.includes('expired')) {
     try {
-      console.log(`[ORS] Requesting route for profile: ${profile}`);
-      console.log(`[ORS] Start: ${startLngLat.join(',')}, End: ${endLngLat.join(',')}`);
-
-      const url = `${ORS_BASE}/${profile}`;
+      console.log(`[MAPPLS] Attempting route for profile: ${mapplsProfile}`);
       
-      const body = {
-        coordinates: [
-          [startLngLat[0], startLngLat[1]],
-          [endLngLat[0], endLngLat[1]]
-        ],
-        units: 'km',
-        format: 'json'
-      };
+      // Mappls API call (keeping original structure for when key is renewed)
+      const coordinates = `${startLngLat[0]},${startLngLat[1]};${endLngLat[0]},${endLngLat[1]}`;
+      const url = `https://apis.mappls.com/advancedmaps/v1/${apiKey}/route_adv/driving/${coordinates}?rtype=0&region=ind&geometries=polyline`;
 
-      // Add timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': apiKey,
-          'User-Agent': 'EcoDrive-App/1.0'
+          'User-Agent': 'EcoDrive-App/1.0',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify(body),
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
-      console.log(`[ORS] Response status: ${response.status}`);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.warn(`[ORS] API error ${response.status}: ${errorText.substring(0, 200)}`);
-        throw new Error(`ORS API error ${response.status}`);
+      if (response.ok) {
+        const data = await response.json();
+        const route = data?.routes?.[0];
+        
+        if (route) {
+          const distance = (route.distance || 0) / 1000;
+          const duration = (route.duration || 0) / 60;
+          
+          console.log(`[MAPPLS] Success: Distance=${distance}km, Duration=${duration}min`);
+          
+          return {
+            distanceKm: distance,
+            durationMinutes: duration,
+            geometry: route.geometry || null,
+            color: ROUTE_COLORS[mapplsProfile] || '#666666',
+            speedSuggestion: calculateSpeedSuggestion(distance, mapplsProfile, weather),
+            raw: data,
+            source: 'MAPPLS'
+          };
+        }
       }
-
-      const data = await response.json();
-
-      const route = data?.routes?.[0];
-      if (!route) {
-        throw new Error('No route in ORS response');
-      }
-
-      const summary = route?.summary || {};
-      const distance = summary.distance || 0; // in km
-      const profileSpeed = SPEED_PROFILES[profile] || 50;
-      const durationMinutes = (distance / profileSpeed) * 60;
-
-      console.log(`[ORS] Success: Distance=${distance}km, Duration=${durationMinutes}min for ${profile}`);
-
-      return {
-        distanceKm: distance,
-        durationMinutes: durationMinutes,
-        geometry: route.geometry || null,
-        raw: data,
-        source: 'ORS'
-      };
-
+      
+      throw new Error(`Mappls API error ${response.status}`);
+      
     } catch (err) {
-      console.warn(`[ORS] Route failed: ${err.message}, trying fallback...`);
-      // Fall through to fallback
+      console.warn(`[MAPPLS] Failed (${err.message}), using OSRM...`);
     }
-  } else {
-    console.log(`[ORS] No valid API key configured, using fallback routing`);
   }
 
-  // Use OSRM as fallback, with straight-line calculation as final fallback
-  return getRouteOSRM(startLngLat, endLngLat, profile);
+  // Use enhanced OSRM as primary routing service
+  return getRouteOSRM(startLngLat, endLngLat, mapplsProfile, weather);
 }

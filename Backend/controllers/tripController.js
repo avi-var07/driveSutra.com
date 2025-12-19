@@ -17,15 +17,17 @@ export async function getRouteOptions(req, res) {
 		const startLngLat = [Number(startLocation.lng), Number(startLocation.lat)];
 		const endLngLat = [Number(endLocation.lng), Number(endLocation.lat)];
 
-		// Get routes for all transport modes and weather data
+		// Get weather data first, then routes with weather context
+		const weatherData = await getRouteWeather(startLocation.lat, startLocation.lng, endLocation.lat, endLocation.lng).catch(err => ({ condition: 'clear', temp: 25 }));
+		
+		// Get routes for all transport modes with weather data
 		const routePromises = [
-			getRouteORS(startLngLat, endLngLat, 'foot-walking').catch(err => ({ error: err.message, mode: 'WALK' })),
-			getRouteORS(startLngLat, endLngLat, 'cycling-regular').catch(err => ({ error: err.message, mode: 'CYCLE' })),
-			getRouteORS(startLngLat, endLngLat, 'driving-car').catch(err => ({ error: err.message, mode: 'CAR' })),
-			getRouteWeather(startLocation.lat, startLocation.lng, endLocation.lat, endLocation.lng).catch(err => ({ condition: 'clear', temp: 25 }))
+			getRouteORS(startLngLat, endLngLat, 'foot-walking', weatherData).catch(err => ({ error: err.message, mode: 'WALK' })),
+			getRouteORS(startLngLat, endLngLat, 'cycling-regular', weatherData).catch(err => ({ error: err.message, mode: 'CYCLE' })),
+			getRouteORS(startLngLat, endLngLat, 'driving-car', weatherData).catch(err => ({ error: err.message, mode: 'CAR' }))
 		];
 
-		const [walkRoute, cycleRoute, carRoute, weatherData] = await Promise.all(routePromises);
+		const [walkRoute, cycleRoute, carRoute] = await Promise.all(routePromises);
 
 		// Calculate straight-line distance for public transport estimation
 		const straightDistance = calculateDistance(startLocation.lat, startLocation.lng, endLocation.lat, endLocation.lng);
@@ -51,7 +53,9 @@ export async function getRouteOptions(req, res) {
 				ecoLabel: 'Carbon Neutral',
 				estimatedEcoScore: 90,
 				icon: '🚶',
-				geometry: walkRoute.geometry
+				geometry: walkRoute.geometry,
+				color: walkRoute.color,
+				steps: walkRoute.steps
 			});
 		}
 
@@ -64,13 +68,14 @@ export async function getRouteOptions(req, res) {
 				ecoLabel: 'Zero Emission',
 				estimatedEcoScore: 88,
 				icon: '🚴',
-				geometry: cycleRoute.geometry
+				geometry: cycleRoute.geometry,
+				color: cycleRoute.color,
+				steps: cycleRoute.steps
 			});
 		}
 
 		// Car/Bike Option
 		if (!carRoute.error) {
-			const suggestedSpeed = Math.min(60, Math.max(30, carRoute.distanceKm / (carRoute.durationMinutes / 60)));
 			options.push({
 				mode: 'CAR',
 				distanceKm: carRoute.distanceKm,
@@ -78,8 +83,10 @@ export async function getRouteOptions(req, res) {
 				ecoLabel: 'Drive Smart',
 				estimatedEcoScore: 65,
 				icon: '🚗',
-				suggestedSpeedRange: `${Math.round(suggestedSpeed - 10)}-${Math.round(suggestedSpeed + 10)} km/h`,
-				geometry: carRoute.geometry
+				speedSuggestion: carRoute.speedSuggestion,
+				geometry: carRoute.geometry,
+				color: carRoute.color,
+				steps: carRoute.steps
 			});
 		}
 
