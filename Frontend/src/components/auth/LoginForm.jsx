@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import { FaEnvelope, FaLock, FaGoogle, FaEye, FaEyeSlash } from 'react-icons/fa';
-import googleAuthService from '../../services/googleAuthService';
+import googleAuth from '../../services/googleAuth';
+import api from '../../services/api';
 
 const LoginForm = ({ switchToRegister }) => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -30,7 +31,7 @@ const LoginForm = ({ switchToRegister }) => {
       return;
     }
 
-    const result = await authLogin(formData.email, formData.password);
+    const result = await login(formData.email, formData.password);
 
     if (result.success) {
       navigate('/dashboard');
@@ -40,25 +41,46 @@ const LoginForm = ({ switchToRegister }) => {
     setLoading(false);
   };
 
-  const { login: authLogin, setUser, setIsAuthenticated } = useAuth();
-
   const handleGoogleLogin = async () => {
     setError('');
     setLoading(true);
+    
     try {
-      const result = await googleAuthService.signInWithGoogle();
+      // Step 1: Sign in with Google
+      const googleResult = await googleAuth.signIn();
       
-      if (result.success) {
-        // Update auth context
-        setUser(result.user);
-        setIsAuthenticated(true);
-        navigate('/dashboard');
-      } else {
-        setError(result.error || 'Google authentication failed');
+      if (!googleResult.success) {
+        setError(googleResult.error || 'Google sign-in failed');
+        setLoading(false);
+        return;
       }
-    } catch (err) {
-      setError('Google authentication failed');
-      console.error('Google login error:', err);
+
+      // Step 2: Send to backend
+      const response = await api.post('/auth/google-signin', {
+        idToken: googleResult.user.idToken,
+        profile: googleResult.user
+      });
+
+      if (response.data.success) {
+        // Store token and user data
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        // Navigate to dashboard
+        navigate('/dashboard');
+        window.location.reload(); // Refresh to update auth context
+      } else {
+        setError(response.data.message || 'Authentication failed');
+      }
+
+    } catch (error) {
+      if (error.response) {
+        setError(error.response.data.message || 'Server error occurred');
+      } else if (error.message) {
+        setError(error.message);
+      } else {
+        setError('Google authentication failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -114,6 +136,7 @@ const LoginForm = ({ switchToRegister }) => {
             onChange={handleChange}
             required
             placeholder="you@example.com"
+            autoComplete="username"
             className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-400/60 focus:border-emerald-400 outline-none transition-all duration-300"
           />
         </motion.div>
@@ -131,6 +154,7 @@ const LoginForm = ({ switchToRegister }) => {
               onChange={handleChange}
               required
               placeholder="••••••••"
+              autoComplete="current-password"
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-400/60 focus:border-emerald-400 outline-none transition-all duration-300"
             />
             <button
@@ -194,7 +218,7 @@ const LoginForm = ({ switchToRegister }) => {
         className="w-full flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-3 transition-all duration-300 disabled:opacity-50 font-semibold"
       >
         <FaGoogle className="text-lg" />
-        Sign in with Google
+        {loading ? 'Signing in...' : 'Sign in with Google'}
       </motion.button>
 
       <motion.div variants={itemVariants} className="text-center">

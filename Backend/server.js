@@ -8,6 +8,7 @@ import userRoutes from "./routes/userRoutes.js";
 import challengeRoutes from "./routes/challengeRoutes.js";
 import achievementRoutes from "./routes/achievementRoutes.js";
 import rewardRoutes from "./routes/rewardRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 import { initializeAchievements } from "./controllers/achievementController.js";
 import { initializeChallenges } from "./utils/initializeChallenges.js";
 import { initializeRewards } from "./controllers/rewardController.js";
@@ -36,6 +37,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/challenges", challengeRoutes);
 app.use("/api/achievements", achievementRoutes);
 app.use("/api/rewards", rewardRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Test route
 app.get("/", (req, res) => {

@@ -314,6 +314,7 @@ const RegisterForm = () => {
                   value={formData.email}
                   onChange={handleChange}
                   required
+                  autoComplete="email"
                   className="w-full px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
                   placeholder="you@example.com"
                 />
@@ -336,6 +337,7 @@ const RegisterForm = () => {
                     value={formData.password}
                     onChange={handleChange}
                     required
+                    autoComplete="new-password"
                     className="w-full pr-10 px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
                     placeholder="••••••••"
                   />

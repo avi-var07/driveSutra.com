@@ -24,18 +24,35 @@ export default function Contact() {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate form submission
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmitted(true);
-      setFormData({
-        name: '',
-        email: '',
-        subject: '',
-        category: 'general',
-        message: ''
+    try {
+      const response = await fetch('http://localhost:5000/api/contact/send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
       });
-    }, 2000);
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitted(true);
+        setFormData({
+          name: '',
+          email: '',
+          subject: '',
+          category: 'general',
+          message: ''
+        });
+      } else {
+        alert('Failed to send message: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Contact form error:', error);
+      alert('Failed to send message. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
