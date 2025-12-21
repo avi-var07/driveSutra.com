@@ -236,7 +236,7 @@ Example: CCD-1K2M3N4-A1B2C3
 ```env
 EMAIL_USER=your_gmail@gmail.com
 EMAIL_PASS=your_app_password
-EMAIL_FROM="DriveSutraGo <your_gmail@gmail.com>"
+EMAIL_FROM="driveSutraGo <your_gmail@gmail.com>"
 ```
 
 ### Reward Initialization:

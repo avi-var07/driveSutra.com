@@ -14,19 +14,51 @@ export default function CurrentLocationPicker({ onLocationSelect, selectedLocati
       setError('Geolocation is not supported by this browser');
       return;
     }
-
+    if (loading) return;
     setLoading(true);
     setError('');
 
     try {
+      // Try fast high-accuracy request first, then fallback to watchPosition if it times out
+      // Check permission state first (outside the Promise executor) to avoid using await inside the executor
+      try {
+        if (navigator.permissions && navigator.permissions.query) {
+          const perm = await navigator.permissions.query({ name: 'geolocation' });
+          if (perm.state === 'denied') {
+            setError('Location access denied. Please enable location permissions.');
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (permErr) {
+        // ignore permission queries
+      }
+
       const position = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
           resolve,
-          reject,
+          (err) => {
+            // If timed out or position unavailable, try watchPosition as a fallback
+            if (err && (err.code === 3 || err.code === 2)) {
+              try {
+                const watchId = navigator.geolocation.watchPosition((p) => {
+                  navigator.geolocation.clearWatch(watchId);
+                  resolve(p);
+                }, (werr) => {
+                  navigator.geolocation.clearWatch(watchId);
+                  reject(werr);
+                }, { enableHighAccuracy: true, timeout: 60000, maximumAge: 0 });
+              } catch (watchErr) {
+                reject(watchErr);
+              }
+            } else {
+              reject(err);
+            }
+          },
           {
             enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000 // 5 minutes
+            timeout: 60000,
+            maximumAge: 0
           }
         );
       });

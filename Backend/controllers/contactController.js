@@ -33,7 +33,7 @@ export async function sendContactMessage(req, res) {
         <div class="container">
           <div class="header">
             <h2 style="margin: 0;">🚗 New Contact Form Submission</h2>
-            <p style="margin: 5px 0 0 0;">DriveSutraGo Contact Form</p>
+            <p style="margin: 5px 0 0 0;">driveSutraGo Contact Form</p>
           </div>
           <div class="content">
             <div class="field">
@@ -57,7 +57,7 @@ export async function sendContactMessage(req, res) {
               <div class="value">${message}</div>
             </div>
             <div class="footer">
-              <p>This message was sent from the DriveSutraGo contact form</p>
+              <p>This message was sent from the driveSutraGo contact form</p>
               <p>Reply to: ${email}</p>
             </div>
           </div>
@@ -69,7 +69,7 @@ export async function sendContactMessage(req, res) {
     // Send email to admin
     await sendEmail(
       'aviralvarshney07@gmail.com',
-      `[DriveSutraGo] ${category.toUpperCase()}: ${subject}`,
+      `[driveSutraGo] ${category.toUpperCase()}: ${subject}`,
       adminEmailContent
     );
 
@@ -93,7 +93,7 @@ export async function sendContactMessage(req, res) {
         <div class="container">
           <div class="header">
             <h1 style="margin: 0;">✅ Message Received!</h1>
-            <p style="margin: 10px 0 0 0;">Thank you for contacting DriveSutraGo</p>
+            <p style="margin: 10px 0 0 0;">Thank you for contacting driveSutraGo</p>
           </div>
           <div class="content">
             <p>Hi ${name},</p>
@@ -114,11 +114,11 @@ export async function sendContactMessage(req, res) {
             </div>
 
             <div class="footer">
-              <p><strong>🚗 DriveSutraGo</strong></p>
+              <p><strong>🚗 driveSutraGo</strong></p>
               <p>Making every journey count for a sustainable future</p>
-              <p style="margin-top: 10px;">
+                <p style="margin-top: 10px;">
                 Need immediate help? Email us at 
-                <a href="mailto:supportDriveSutra@gmail.com" style="color: #10b981;">supportDriveSutra@gmail.com</a>
+                <a href="mailto:support@drivesutrago.com" style="color: #10b981;">support@drivesutrago.com</a>
               </p>
             </div>
           </div>
@@ -130,7 +130,7 @@ export async function sendContactMessage(req, res) {
     // Send confirmation to user
     await sendEmail(
       email,
-      'Thank you for contacting DriveSutraGo',
+      'Thank you for contacting driveSutraGo',
       userEmailContent
     );
 

@@ -1,3 +1,7 @@
+.navigation-root { height: 100%; display: flex; }
+.map-pane { position: relative; }
+.sidebar-pane { border-left: 1px solid rgba(255,255,255,0.04); }
+.leaflet-container { height: 100%; width: 100%; }
 /* Navigation Component Styles */
 
 /* User location marker animation */

@@ -4,6 +4,7 @@ import OtpToken from "../models/OtpToken.js";
 import otpGenerator from "otp-generator";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/sendEmail.js";
+import { sendWelcomeEmail } from "../utils/emailService.js";
 import { OAuth2Client } from 'google-auth-library';
 
 // Helper function to extract device info from request
@@ -64,8 +65,16 @@ export const sendOtp = async (req, res) => {
     // Save new OTP
     await OtpToken.create({ email, code: otp, expiresAt });
 
-    // Send email
-    await sendEmail(email, "EcoDrive Email Verification", `<h2>Your OTP: ${otp}</h2><p>Valid for 10 minutes</p>`);
+    // Send email (formatted)
+    await sendEmail(email, "Your driveSutraGo verification code", `
+      <div style="font-family: Arial, Helvetica, sans-serif; color: #111; max-width:600px;">
+        <div style="padding:20px;background:#fff;border-radius:8px;">
+          <h3 style="color:#0b84ff;margin:0 0 10px 0">driveSutraGo — Email Verification</h3>
+          <p>Use the code below to verify your email. It is valid for 10 minutes.</p>
+          <div style="margin:18px 0;"><span style="background:#111827;color:#fff;padding:12px 18px;border-radius:6px;font-weight:700;letter-spacing:6px;font-size:20px;">${otp}</span></div>
+        </div>
+      </div>
+    `);
 
     return res.status(200).json({ success: true, message: "OTP sent successfully" });
   } catch (error) {
@@ -123,7 +132,15 @@ export const forgotPassword = async (req, res) => {
     await OtpToken.findOneAndDelete({ email, purpose: 'forgot' });
     await OtpToken.create({ email, code: otp, purpose: 'forgot', expiresAt });
 
-    await sendEmail(email, "EcoDrive Password Reset", `<h2>Your password reset OTP: ${otp}</h2><p>Valid for 10 minutes</p>`);
+    await sendEmail(email, "driveSutraGo — Password Reset OTP", `
+      <div style="font-family: Arial, Helvetica, sans-serif; color: #111; max-width:600px;">
+        <div style="padding:20px;background:#fff;border-radius:8px;">
+          <h3 style="color:#0b84ff;margin:0 0 10px 0">driveSutraGo — Password Reset</h3>
+          <p>Use the following OTP to reset your password. It will expire in 10 minutes.</p>
+          <div style="margin:18px 0;"><span style="background:#111827;color:#fff;padding:12px 18px;border-radius:6px;font-weight:700;letter-spacing:6px;font-size:20px;">${otp}</span></div>
+        </div>
+      </div>
+    `);
 
     return res.status(200).json({ success: true, message: "OTP sent successfully" });
   } catch (error) {
@@ -270,6 +287,9 @@ export const register = async (req, res) => {
     }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
+
+    // Send welcome email asynchronously (do not block response)
+    try { sendWelcomeEmail(user).catch(()=>{}); } catch(e) {}
 
     // Return success with user data (exclude password)
     return res.status(201).json({

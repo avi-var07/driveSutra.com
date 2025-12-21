@@ -22,8 +22,10 @@ export const sendEmail = async (email, subject, message) => {
     },
   });
 
+  const fromAddress = process.env.EMAIL_FROM || `driveSutraGo <no-reply@drivesutrago.com>`;
+
   await transporter.sendMail({
-    from: "EcoDrive <no-reply@ecodrive.com>",
+    from: fromAddress,
     to: email,
     subject,
     html: message,

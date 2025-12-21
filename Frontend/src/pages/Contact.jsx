@@ -125,7 +125,7 @@ export default function Contact() {
                         onChange={handleChange}
                         required
                         className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:border-emerald-500 focus:outline-none transition-colors"
-                        placeholder="Your full name"
+                        placeholder="Your Name"
                       />
                     </div>
                     <div>
@@ -229,7 +229,7 @@ export default function Contact() {
                   <ContactItem
                     icon={FaEnvelope}
                     title="Email"
-                    content="supportDriveSutra@gmail.com"
+                    content="support@drivesutrago.com"
                     subtitle="We typically respond within 24 hours"
                   />
                   <ContactItem
@@ -304,23 +304,23 @@ export default function Contact() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Developer 1 */}
             <DeveloperCard
-              name="Developer Name 1"
-              designation="Full Stack Developer"
+              name="Aviral Ved Varshney"
+              designation="Lead Full Stack Developer"
               about="Passionate about creating sustainable technology solutions and environmental conservation. Specializes in React, Node.js, and MongoDB."
-              email="developer1@drivesutra.com"
+              email="aviralvarshney07@gmail.com"
               social={{
-                github: "https://github.com/developer1",
-                linkedin: "https://linkedin.com/in/developer1",
+                github: "https://github.com/avi-var07",
+                linkedin: "https://www.linkedin.com/in/avi7/",
                 twitter: "https://twitter.com/developer1"
               }}
-              avatar="👨‍💻"
+              avatar=""
               delay={0.1}
             />
 
             {/* Developer 2 */}
             <DeveloperCard
-              name="Developer Name 2"
-              designation="Frontend Developer"
+              name="Aman Verma"
+              designation="Lead Frontend Developer"
               about="UI/UX enthusiast with a focus on creating beautiful and intuitive user experiences. Expert in React, Tailwind CSS, and modern web technologies."
               email="developer2@drivesutra.com"
               social={{
@@ -334,8 +334,8 @@ export default function Contact() {
 
             {/* Developer 3 */}
             <DeveloperCard
-              name="Developer Name 3"
-              designation="Backend Developer"
+              name="Prateek Randi"
+              designation="Lead AI/ML Developer"
               about="Backend architecture specialist focused on scalable and efficient systems. Experienced in Node.js, Express, database optimization, and API design."
               email="developer3@drivesutra.com"
               social={{
