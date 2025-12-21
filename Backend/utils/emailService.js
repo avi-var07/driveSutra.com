@@ -31,7 +31,7 @@ export async function sendRewardConfirmationEmail(user, userReward, reward) {
     }
 
     const mailOptions = {
-      from: "DriveSutraGo <no-reply@drivesutrago.com>",
+      from: "driveSutraGo <no-reply@drivesutrago.com>",
       to: user.email,
       subject: `🎉 Reward Redeemed Successfully - ${reward.title}`,
       html: `
@@ -106,7 +106,7 @@ export async function sendRewardConfirmationEmail(user, userReward, reward) {
             </div>
             
             <div class="footer">
-              <h3 style="margin: 0 0 10px 0;">🚗 DriveSutraGo</h3>
+              <h3 style="margin: 0 0 10px 0;">🚗 driveSutraGo</h3>
               <p style="margin: 0; color: #9ca3af;">
                 Making every journey count for a sustainable future
               </p>
@@ -136,48 +136,53 @@ export async function sendWelcomeEmail(user) {
     }
 
     const mailOptions = {
-      from: "DriveSutraGo <no-reply@drivesutrago.com>",
+      from: "driveSutraGo <no-reply@drivesutrago.com>",
       to: user.email,
-      subject: '🌍 Welcome to DriveSutraGo - Start Your Eco Journey!',
+      subject: '🌍 Welcome to driveSutraGo - Start Your Eco Journey!',
       html: `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Welcome to DriveSutraGo</title>
+          <title>Welcome to driveSutraGo</title>
           <style>
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f8fafc; }
             .container { max-width: 600px; margin: 0 auto; background-color: white; }
             .header { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 40px; text-align: center; }
             .content { padding: 30px; }
+            .cta { text-align: center; margin: 20px 0; }
+            .btn { background: #10b981; color: white; padding: 12px 18px; border-radius: 8px; text-decoration: none; display: inline-block; }
             .footer { background: #1f2937; color: white; padding: 20px; text-align: center; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <h1>🌍 Welcome to DriveSutraGo!</h1>
-              <p>Hi ${user.firstName}, ready to make every journey count for our planet?</p>
+              <h1>🌍 Welcome to driveSutraGo!</h1>
+              <p>Hi ${user.firstName}, welcome aboard — let's make every journey count.</p>
             </div>
             
             <div class="content">
-              <h2>🎉 Your Eco Journey Starts Now!</h2>
-              <p>Thank you for joining DriveSutraGo - India's first gamified eco-mobility platform. You're now part of a community that's making transportation sustainable, one trip at a time.</p>
-              
+              <h2>🎉 What you can do next</h2>
+              <ol>
+                <li><strong>Plan a Trip:</strong> Open the Trips page and set start & destination.</li>
+                <li><strong>Choose a Mode:</strong> Select Walk, Cycle, Public, or Car and compare eco scores.</li>
+                <li><strong>Start Navigation:</strong> Use live tracking to follow your route and collect eco points.</li>
+                <li><strong>Redeem Rewards:</strong> Complete trips and challenges to unlock coupons and credits.</li>
+              </ol>
+
               <h3>🎁 Welcome Bonus</h3>
-              <p>As a welcome gift, you've received:</p>
-              <ul>
-                <li>✅ 25 Carbon Credits to start with</li>
-                <li>✅ Access to beginner challenges</li>
-                <li>✅ Eco score tracking</li>
-                <li>✅ Leaderboard participation</li>
-              </ul>
+              <p>We've added 25 Carbon Credits to your account to get you started.</p>
+
+              <div class="cta">
+                <a class="btn" href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/trip/new">Plan Your First Trip</a>
+              </div>
             </div>
             
             <div class="footer">
-              <h3>🚗 DriveSutraGo</h3>
-              <p>Making every journey count for a sustainable future</p>
+              <h3>🚗 driveSutraGo</h3>
+              <p>Features: Live navigation, eco-score tracking, rewards & challenges — start your first trip now.</p>
             </div>
           </div>
         </body>
@@ -194,7 +199,63 @@ export async function sendWelcomeEmail(user) {
   }
 }
 
+// Send trip completion summary email
+export async function sendTripCompletionEmail(user, trip, rewards) {
+  try {
+    const transporter = createTransporter();
+    if (!transporter) return false;
+
+    const frontend = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    const mailOptions = {
+      from: "driveSutraGo <no-reply@drivesutrago.com>",
+      to: user.email,
+      subject: `✅ Trip Completed — Summary & Impact (${trip.mode})`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Trip Summary</title>
+          <style>body{font-family:Arial,Helvetica,sans-serif;color:#111}</style>
+        </head>
+        <body>
+          <div style="max-width:600px;margin:0 auto;padding:20px;background:#fff;border-radius:8px;">
+            <h2 style="color:#0b84ff;margin:0 0 8px 0">Trip Completed — Thank you!</h2>
+            <p>Hi ${user.firstName},</p>
+            <p>Thanks for completing your trip with driveSutraGo. Here is a quick summary of your journey:</p>
+            <ul>
+              <li><strong>Mode:</strong> ${trip.mode}</li>
+              <li><strong>Distance:</strong> ${trip.distanceKm || 0} km</li>
+              <li><strong>Duration:</strong> ${trip.actualMinutes || trip.etaMinutes} minutes</li>
+              <li><strong>Eco Score:</strong> ${trip.ecoScore || '—'}</li>
+            </ul>
+            <div style="background:#ecfdf5;padding:12px;border-radius:8px;margin:12px 0;">
+              <p style="margin:0;">You contributed <strong>${(trip.co2Saved || 0).toFixed(1)} kg CO₂</strong> saved and helped grow approximately <strong>${trip.treesGrown || 0}</strong> trees (est.).</p>
+            </div>
+            <h4>Rewards Earned</h4>
+            <p>XP: <strong>${rewards.xp}</strong> • Carbon Credits: <strong>${rewards.carbonCredits}</strong></p>
+            <div style="text-align:center;margin:16px 0;"><a href="${frontend}/trips/${trip._id}" style="background:#10b981;color:white;padding:10px 14px;border-radius:8px;text-decoration:none;">View Trip Details</a></div>
+            <p style="color:#6b7280;font-size:13px;">What's next: Try a challenge, invite friends, or plan another eco-friendly trip to keep earning rewards.</p>
+            <div style="margin-top:18px;color:#9ca3af;font-size:12px;">driveSutraGo — Making every journey count.</div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Trip completion email sent to ${user.email}`);
+    return true;
+  } catch (err) {
+    console.error('❌ Error sending trip completion email:', err.message || err);
+    return false;
+  }
+}
+
 export default {
   sendRewardConfirmationEmail,
-  sendWelcomeEmail
+  sendWelcomeEmail,
+  sendTripCompletionEmail
 };

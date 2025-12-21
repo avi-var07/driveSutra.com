@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import { calculateEcoScore } from '../utils/ecoScoreCalculator.js';
 import { getRouteWeather } from '../utils/weatherService.js';
 import { checkAchievements } from './achievementController.js';
+import { sendTripCompletionEmail } from '../utils/emailService.js';
 
 // Get route options for all 3 modes (PUBLIC, WALK/CYCLE, CAR/BIKE)
 export async function getRouteOptions(req, res) {
@@ -305,6 +306,9 @@ export async function completeTrip(req, res) {
 
 		// Get updated user data for response
 		const updatedUser = await User.findById(user._id).select('-password');
+
+		// Send trip completion email (non-blocking)
+		try { sendTripCompletionEmail(updatedUser, trip, { xp: trip.xpEarned, carbonCredits: trip.carbonCreditsEarned, co2Saved: trip.co2Saved }).catch(()=>{}); } catch(e) {}
 
 		return res.json({ 
 			success: true, 
