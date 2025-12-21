@@ -172,9 +172,6 @@ export async function sendWelcomeEmail(user) {
                 <li><strong>Redeem Rewards:</strong> Complete trips and challenges to unlock coupons and credits.</li>
               </ol>
 
-              <h3>🎁 Welcome Bonus</h3>
-              <p>We've added 25 Carbon Credits to your account to get you started.</p>
-
               <div class="cta">
                 <a class="btn" href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/trip/new">Plan Your First Trip</a>
               </div>

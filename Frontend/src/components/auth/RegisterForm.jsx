@@ -273,7 +273,7 @@ const RegisterForm = () => {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
-                  placeholder="John"
+                  placeholder="firstName"
                 />
               </motion.div>
 
@@ -294,7 +294,7 @@ const RegisterForm = () => {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 bg-emerald-950/30 border border-emerald-800/30 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300"
-                  placeholder="Doe"
+                  placeholder="Last Name"
                 />
               </motion.div>
 

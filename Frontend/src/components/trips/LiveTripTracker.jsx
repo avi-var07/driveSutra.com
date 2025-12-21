@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, CircleMarker } from 'react-leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaPlay, FaStop, FaPause, FaMapMarkerAlt, FaClock, FaRoute, FaHeartbeat, FaFire } from 'react-icons/fa';
 import { MdSpeed, MdMyLocation, MdFitnessCenter } from 'react-icons/md';
@@ -67,6 +67,8 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
   const startTimeRef = useRef(null);
   const lastPositionRef = useRef(null);
   const speedsRef = useRef([]);
+  const arrivalTriggeredRef = useRef(false);
+  const ARRIVAL_THRESHOLD_M = 30; // meters to auto-complete
 
   // Check if trip is already in progress and restore state
   useEffect(() => {
@@ -119,6 +121,46 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
               Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
+  };
+
+  // Find closest point on a segment AB to point P and return {point: [lat,lng], dist, t}
+  const closestPointOnSegment = (ax, ay, bx, by, px, py) => {
+    const vx = bx - ax;
+    const vy = by - ay;
+    const wx = px - ax;
+    const wy = py - ay;
+    const vLen2 = vx * vx + vy * vy;
+    if (vLen2 === 0) return { point: [ax, ay], t: 0, dist: calculateDistance(ax, ay, px, py) };
+    const t = Math.max(0, Math.min(1, (vx * wx + vy * wy) / vLen2));
+    const cx = ax + t * vx;
+    const cy = ay + t * vy;
+    return { point: [cx, cy], t, dist: calculateDistance(cx, cy, px, py) };
+  };
+
+  // Project current position onto the route geometry and split into covered & remaining coordinates
+  const getRouteSplit = (routeGeo, position) => {
+    if (!routeGeo || !routeGeo.coordinates || routeGeo.coordinates.length === 0 || !position) return null;
+    const coords = routeGeo.coordinates.map(c => [c[1], c[0]]); // to [lat,lng]
+    let best = { dist: Infinity, index: 0, t: 0, point: null };
+    for (let i = 0; i < coords.length - 1; i++) {
+      const a = coords[i];
+      const b = coords[i + 1];
+      const res = closestPointOnSegment(a[0], a[1], b[0], b[1], position[0], position[1]);
+      if (res.dist < best.dist) {
+        best = { dist: res.dist, index: i, t: res.t, point: res.point };
+      }
+    }
+
+    // Build covered and remaining arrays
+    const covered = [];
+    for (let i = 0; i <= best.index; i++) covered.push(coords[i]);
+    if (best.point) covered.push(best.point);
+
+    const remaining = [];
+    if (best.point) remaining.push(best.point);
+    for (let i = best.index + 1; i < coords.length; i++) remaining.push(coords[i]);
+
+    return { covered, remaining, distanceFromRouteEnd: calculateDistance(position[0], position[1], coords[coords.length - 1][0], coords[coords.length - 1][1]) };
   };
 
   // Save trip state to localStorage
@@ -226,6 +268,19 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         if (isTracking) {
           saveTripState();
         }
+
+        // Arrival detection: if we're close to route end, auto-complete
+        try {
+          const split = getRouteSplit(trip.routeGeometry, newPos);
+          if (split && split.distanceFromRouteEnd * 1000 <= ARRIVAL_THRESHOLD_M && isTracking && !arrivalTriggeredRef.current) {
+            arrivalTriggeredRef.current = true;
+            console.log('Arrival detected, auto-completing trip...');
+            // call stop without awaiting here to avoid blocking geolocation callback
+            handleStopTrip();
+          }
+        } catch (e) {
+          // ignore errors in arrival detection
+        }
       },
       (error) => {
         console.error('Error watching position:', error);
@@ -266,6 +321,23 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         await connectGoogleFit();
       }
       
+      // Prevent starting another trip if a different trip is already tracked in localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('trip_')) {
+          try {
+            const s = JSON.parse(localStorage.getItem(key));
+            if (s && s.isTracking && key !== `trip_${trip._id}`) {
+              setError('Another trip is currently in progress. Please complete it before starting a new one.');
+              setLoading(false);
+              return;
+            }
+          } catch (e) {
+            // ignore parse errors
+          }
+        }
+      }
+
       // Start trip on backend
       await startTrip(trip._id);
       
@@ -352,6 +424,9 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
       
       // Clear saved state
       clearTripState();
+
+      // reset arrival flag
+      arrivalTriggeredRef.current = false;
       
       // Call parent callback with results
       if (onTripComplete) {
@@ -406,6 +481,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
   const mapCenter = currentPosition || [trip.startLocation.lat, trip.startLocation.lng];
   const startPos = [trip.startLocation.lat, trip.startLocation.lng];
   const endPos = [trip.endLocation.lat, trip.endLocation.lng];
+  const routeSplit = getRouteSplit(trip.routeGeometry, currentPosition);
 
   return (
     <div className="space-y-6">
@@ -541,9 +617,13 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
             </Popup>
           </Marker>
           
-          {/* Current position marker */}
+          {/* Current position circular marker (smooth-looking) */}
           {currentPosition && (
-            <Marker position={currentPosition} icon={currentIcon}>
+            <CircleMarker
+              center={currentPosition}
+              pathOptions={{ color: '#3B82F6', fillColor: '#3B82F6', fillOpacity: 1, weight: 0 }}
+              radius={8}
+            >
               <Popup>
                 <div className="text-center">
                   <strong>Your Location</strong>
@@ -551,11 +631,19 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
                   Speed: {Math.round(tripStats.avgSpeed)} km/h
                 </div>
               </Popup>
-            </Marker>
+            </CircleMarker>
           )}
           
-          {/* Planned route (if available) */}
-          {trip.routeGeometry && trip.routeGeometry.coordinates && (
+          {/* Route split: covered (green) and remaining (blue) if we have route geometry */}
+          {routeSplit && routeSplit.covered && routeSplit.covered.length > 1 && (
+            <Polyline positions={routeSplit.covered} color="#10B981" weight={6} opacity={0.95} />
+          )}
+          {routeSplit && routeSplit.remaining && routeSplit.remaining.length > 1 && (
+            <Polyline positions={routeSplit.remaining} color="#3B82F6" weight={6} opacity={0.9} />
+          )}
+
+          {/* Fallback: show planned route faintly if no split available */}
+          {!routeSplit && trip.routeGeometry && trip.routeGeometry.coordinates && (
             <Polyline
               positions={trip.routeGeometry.coordinates.map(coord => [coord[1], coord[0]])}
               color={trip.color || '#6B7280'}
