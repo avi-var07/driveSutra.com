@@ -19,7 +19,7 @@ const ChatInterface = ({ onClose, onNewMessage }) => {
   useEffect(() => {
     const welcomeMessage = {
       id: 'welcome-' + Date.now(),
-      content: "Hello! I'm your Eco-Drive Assistant 🌱 I'm here to help you learn about sustainable driving practices, fuel efficiency tips, and eco-friendly transportation options. What would you like to know about eco-driving?",
+      content: "Hello! I'm driveSutraGo's Assistant 🌱 I'm here to help you learn about sustainable driving practices, fuel efficiency tips, and eco-friendly transportation options. What would you like to know about eco-driving?",
       sender: 'bot',
       timestamp: new Date(),
       status: 'delivered'
@@ -121,7 +121,7 @@ const ChatInterface = ({ onClose, onNewMessage }) => {
             <span className="text-green-500 text-lg">🌱</span>
           </div>
           <div>
-            <h3 className="font-semibold text-lg">Eco-Drive Assistant</h3>
+            <h3 className="font-semibold text-lg">driveSutraGo Assistant</h3>
             <p className="text-green-100 text-sm">Sustainable driving tips & advice</p>
           </div>
         </div>

@@ -323,13 +323,16 @@ export const login = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ success: false, message: "User not found" });
+      return res.status(401).json({ success: false, message: "User does not exist, please signup first!" });
     }
 
     // Compare passwords using the method we added
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, message: "Wrong password" });
+      return res.status(401).json({ 
+        success: false, 
+        message: "Incorrect email or password. Try Again or Reset using Forgot Password" 
+      });
     }
 
     // Create session

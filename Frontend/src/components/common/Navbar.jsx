@@ -383,7 +383,7 @@ function NavbarLogo() {
           transition: { duration: 0.2 }
         }}
       >
-        driveSutra.com
+        driveSutraGo.com
       </motion.span>
     </div>
   );

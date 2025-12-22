@@ -1,5 +1,5 @@
 /**
- * Chatbot Service for Eco-Drive Assistant
+ * Chatbot Service for driveSutraGo Assistant
  * Integrates with Google Gemini API to provide domain-specific responses about eco-driving
  */
 
@@ -23,7 +23,7 @@ class ChatbotService {
   getSystemInstruction() {
     return {
       parts: [{
-        text: `You are an Eco-Drive Assistant for DriveSutra, a platform dedicated to sustainable transportation. Your role is to educate users about eco-friendly driving practices, environmental benefits, and sustainable transportation alternatives.
+        text: `You are driveSutraGo's Assistant, a platform dedicated to sustainable transportation. Your role is to educate users about eco-friendly driving practices, environmental benefits, and sustainable transportation alternatives.
 
 IMPORTANT GUIDELINES:
 - Focus EXCLUSIVELY on eco-driving, fuel efficiency, environmental impact, and sustainable transportation

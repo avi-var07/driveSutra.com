@@ -4,6 +4,13 @@
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const WEATHER_BASE_URL = 'https://api.openweathermap.org/data/2.5/weather';
 
+// Debug log to verify API key is loaded
+if (WEATHER_API_KEY) {
+  console.log('🌤️ Weather API key loaded successfully');
+} else {
+  console.warn('⚠️ Weather API key not found in environment variables');
+}
+
 export async function getWeatherData(lat, lng) {
   try {
     if (!WEATHER_API_KEY) {

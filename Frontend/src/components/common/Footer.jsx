@@ -19,7 +19,7 @@ export default function Footer() {
                 <FaLeaf className="text-white text-xl" />
               </div>
                 <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-                driveSutraGo
+                driveSutraGo.com
               </span>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed">
@@ -66,7 +66,7 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-slate-400">
                 <FaEnvelope className="text-emerald-400" />
-                <span className="text-sm">support@drivesutrago.com</span>
+                <span className="text-sm">support@driveSutraGo.com</span>
               </div>
               <div className="flex items-center gap-3 text-slate-400">
                 <FaPhone className="text-emerald-400" />
@@ -101,7 +101,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-slate-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-slate-400 text-sm text-center md:text-left">
-            © {currentYear} driveSutraGo. All rights reserved. Made with 💚 for a sustainable future.
+            © {currentYear} driveSutraGo.com All rights reserved. Made with 💚 for a sustainable future.
           </div>
           <div className="flex items-center gap-6 text-sm">
             <Link to="/privacy" className="text-slate-400 hover:text-emerald-400 transition-colors">
