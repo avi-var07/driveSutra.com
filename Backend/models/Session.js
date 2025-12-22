@@ -11,8 +11,7 @@ const sessionSchema = new mongoose.Schema({
   // Session Information
   sessionToken: { 
     type: String, 
-    required: true, 
-    unique: true 
+    required: true
   },
   
   // Device & Location Info

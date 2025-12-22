@@ -6,6 +6,7 @@ import { BsFillTreeFill } from "react-icons/bs";
 import { CiTrophy } from "react-icons/ci";
 import { HiSparkles } from "react-icons/hi2";
 import { motion } from "motion/react";
+import ChatWidget from "../ChatWidget";
 
 export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -473,6 +474,9 @@ export default function Home() {
         </section>
       </main>
 
+      {/* Eco-Drive Chatbot Widget */}
+      <ChatWidget />
+
       {/* Footer */}
       <footer className="border-t border-emerald-900/30 bg-emerald-950/20 mt-20">
         <div className="max-w-7xl mx-auto px-6 py-12">
@@ -763,7 +767,7 @@ function LoadingScreen() {
             transition={{ delay: 1, duration: 0.6 }}
           >
             <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 bg-clip-text text-transparent">
-              driveSutra.com
+              driveSutraGo.com
             </h1>
             <div className="text-emerald-400 mt-2 text-sm tracking-wider flex items-center gap-2 justify-center">
               <motion.span
@@ -1276,7 +1280,7 @@ function AnimatedLogo() {
               filter: 'drop-shadow(0 2px 4px rgba(16, 185, 129, 0.2))'
             }}
           >
-            driveSutra.com
+            driveSutraGo.com
           </motion.h1>
           <motion.div
             animate={{ 

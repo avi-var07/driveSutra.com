@@ -66,7 +66,7 @@ describe('ChatInterface', () => {
     render(<ChatInterface onClose={mockOnClose} onNewMessage={mockOnNewMessage} />);
     
     // Should show the welcome message
-    expect(screen.getByText(/Hello! I'm your Eco-Drive Assistant/)).toBeInTheDocument();
+    expect(screen.getByText(/Hello! I'm driveSutraGo's Assistant/)).toBeInTheDocument();
     expect(screen.getByText(/sustainable driving practices/)).toBeInTheDocument();
   });
 
@@ -74,7 +74,7 @@ describe('ChatInterface', () => {
     render(<ChatInterface onClose={mockOnClose} onNewMessage={mockOnNewMessage} />);
     
     // Should show header with title
-    expect(screen.getByText('Eco-Drive Assistant')).toBeInTheDocument();
+    expect(screen.getByText('driveSutraGo Assistant')).toBeInTheDocument();
     expect(screen.getByText('Sustainable driving tips & advice')).toBeInTheDocument();
     
     // Should have close button
@@ -107,14 +107,14 @@ describe('ChatInterface', () => {
     // Should show welcome message as bot message
     const botMessage = screen.getByTestId('message-bot');
     expect(botMessage).toBeInTheDocument();
-    expect(botMessage).toHaveTextContent(/Hello! I'm your Eco-Drive Assistant/);
+    expect(botMessage).toHaveTextContent(/Hello! I'm your driveSutraGo Assistant/);
   });
 
   it('should have proper accessibility structure', () => {
     render(<ChatInterface onClose={mockOnClose} onNewMessage={mockOnNewMessage} />);
     
     // Should have proper heading structure
-    expect(screen.getByText('Eco-Drive Assistant')).toBeInTheDocument();
+    expect(screen.getByText('driveSutraGo Assistant')).toBeInTheDocument();
     
     // Close button should have proper aria-label
     const closeButton = screen.getByRole('button', { name: /close chat/i });

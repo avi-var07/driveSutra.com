@@ -22,23 +22,38 @@ const LoginForm = ({ switchToRegister }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('Form submitted, preventing default behavior');
     setError('');
     setLoading(true);
 
     if (!formData.email || !formData.password) {
+      console.log('Missing fields');
       setError('Please fill in all fields');
       setLoading(false);
       return;
     }
 
-    const result = await login(formData.email, formData.password);
-
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error);
+    try {
+      console.log('Attempting login with:', formData.email);
+      const result = await login(formData.email, formData.password);
+      console.log('Login result:', result);
+      
+      if (result.success) {
+        console.log('Login successful, redirecting...');
+        // Force page reload to ensure auth state is properly updated
+        window.location.href = '/dashboard';
+      } else {
+        console.log('Login failed with error:', result.error);
+        setError(result.error || 'Login failed');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Login exception:', error);
+      setError('Login failed. Please try again.');
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleLogin = async () => {
