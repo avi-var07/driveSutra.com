@@ -2,11 +2,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDate, formatRelativeTime } from '../../utils/formatDate';
 import { formatDistance, formatCO2 } from '../../utils/formatNumber';
-import { 
-  FaBicycle, 
-  FaBus, 
-  FaCar, 
-  FaTrain, 
+import {
+  FaBicycle,
+  FaBus,
+  FaCar,
+  FaTrain,
   FaWalking,
   FaMotorcycle,
   FaSubway,
@@ -107,7 +107,7 @@ const RecentTrips = ({ trips, loading }) => {
               <div
                 key={trip._id}
                 className="flex items-center gap-4 p-4 border border-emerald-800/30 rounded-xl hover:bg-emerald-950/30 hover:border-emerald-700/40 transition-all duration-300 cursor-pointer"
-                onClick={() => navigate('/trips')}
+                onClick={() => navigate(`/trips/${trip._id}`)}
               >
                 <div className="p-3 rounded-full bg-emerald-500/20 border border-emerald-500/30">
                   <ModeIcon className="text-xl text-emerald-400" />
@@ -116,16 +116,16 @@ const RecentTrips = ({ trips, loading }) => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-semibold text-white truncate">
-                      {trip.from} → {trip.to}
+                      {trip.startLocation?.address?.split(',')[0]} → {trip.endLocation?.address?.split(',')[0]}
                     </h3>
                     <span className="text-xs font-medium text-emerald-400">
                       {ecoRating.label}
                     </span>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-slate-400">
-                    <span>{formatDistance(trip.distance)}</span>
+                    <span>{trip.distanceKm ? formatDistance(trip.distanceKm) : '0 km'}</span>
                     <span>•</span>
-                    <span>{formatRelativeTime(trip.date)}</span>
+                    <span>{formatRelativeTime(trip.createdAt)}</span>
                   </div>
                 </div>
 

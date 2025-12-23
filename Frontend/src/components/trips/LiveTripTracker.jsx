@@ -35,13 +35,41 @@ const currentIcon = createCustomIcon('#3B82F6', '📍');
 // Component to update map view and follow user
 function MapUpdater({ center, zoom, followUser }) {
   const map = useMap();
-  
+
   useEffect(() => {
     if (center && followUser) {
       map.setView(center, zoom, { animate: true, duration: 0.5 });
     }
   }, [center, zoom, map, followUser]);
-  
+
+  return null;
+}
+
+// Component to fit map bounds to route on load
+function MapBoundsFitter({ routeGeometry, startPos, endPos }) {
+  const map = useMap();
+  const fittedRef = useRef(false);
+
+  useEffect(() => {
+    if (!map || fittedRef.current) return;
+
+    let bounds = null;
+
+    if (routeGeometry && routeGeometry.coordinates && routeGeometry.coordinates.length > 0) {
+      // Create bounds from route coordinates
+      const coords = routeGeometry.coordinates.map(c => [c[1], c[0]]); // [lat, lng]
+      bounds = L.latLngBounds(coords);
+    } else if (startPos && endPos) {
+      // Create bounds from start/end
+      bounds = L.latLngBounds([startPos, endPos]);
+    }
+
+    if (bounds && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [50, 50], animate: false });
+      fittedRef.current = true;
+    }
+  }, [map, routeGeometry, startPos, endPos]);
+
   return null;
 }
 
@@ -62,13 +90,16 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
   const [googleFitConnected, setGoogleFitConnected] = useState(false);
   const [showFitnessStats, setShowFitnessStats] = useState(false);
   const [tripStarted, setTripStarted] = useState(false);
-  
+  const [isSimulating, setIsSimulating] = useState(false);
+
   const watchIdRef = useRef(null);
   const startTimeRef = useRef(null);
   const lastPositionRef = useRef(null);
   const speedsRef = useRef([]);
   const arrivalTriggeredRef = useRef(false);
-  const ARRIVAL_THRESHOLD_M = 30; // meters to auto-complete
+  const simulationIntervalRef = useRef(null);
+  const ARRIVAL_THRESHOLD_M = 50; // Increased threshold
+
 
   // Check if trip is already in progress and restore state
   useEffect(() => {
@@ -94,7 +125,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         (position) => {
           const pos = [position.coords.latitude, position.coords.longitude];
           setCurrentPosition(pos);
-          
+
           // If trip is in progress, start tracking immediately
           if (trip.status === 'in_progress' && !isTracking) {
             console.log('Trip in progress, starting tracking...');
@@ -116,10 +147,10 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
     const R = 6371; // Earth's radius in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
@@ -205,17 +236,17 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         const newPos = [position.coords.latitude, position.coords.longitude];
         const speed = position.coords.speed ? Math.max(0, position.coords.speed * 3.6) : 0; // Convert m/s to km/h
         const accuracy = position.coords.accuracy;
-        
+
         console.log(`Position update: ${newPos[0].toFixed(6)}, ${newPos[1].toFixed(6)}, Speed: ${speed.toFixed(1)} km/h, Accuracy: ${accuracy}m`);
-        
+
         // Only update if accuracy is reasonable (less than 100 meters)
         if (accuracy > 100) {
           console.log('Low accuracy position ignored:', accuracy);
           return;
         }
-        
+
         setCurrentPosition(newPos);
-        
+
         // Update trip path
         setTripPath(prev => {
           const lastPos = prev[prev.length - 1];
@@ -225,45 +256,45 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
           const newPath = [...prev, newPos];
           return newPath;
         });
-        
+
         // Update stats with better calculation
         if (lastPositionRef.current && startTimeRef.current) {
           const distance = calculateDistance(
             lastPositionRef.current[0], lastPositionRef.current[1],
             newPos[0], newPos[1]
           );
-          
+
           // Only update if there's meaningful movement (more than 2 meters)
           if (distance > 0.002) {
             setTripStats(prev => {
               const newDistance = prev.distance + distance;
               const duration = (Date.now() - startTimeRef.current) / 1000 / 60; // minutes
               const avgSpeed = duration > 0.1 ? (newDistance / duration) * 60 : 0; // km/h
-              
+
               // Track speeds for max speed (use GPS speed if available, otherwise calculated)
               const currentSpeed = speed > 0 ? speed : (distance > 0 && duration > 0 ? (distance / (duration / 60)) : 0);
               if (currentSpeed > 0 && currentSpeed < 200) { // Sanity check
                 speedsRef.current.push(currentSpeed);
               }
               const maxSpeed = Math.max(prev.maxSpeed, currentSpeed);
-              
+
               const newStats = {
                 distance: newDistance,
                 duration,
                 avgSpeed,
                 maxSpeed
               };
-              
+
               console.log('Stats updated:', newStats);
               return newStats;
             });
-            
+
             lastPositionRef.current = newPos;
           }
         } else {
           lastPositionRef.current = newPos;
         }
-        
+
         // Save state periodically
         if (isTracking) {
           saveTripState();
@@ -294,12 +325,92 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
     );
   };
 
+  // Simulation Logic: Moves marker along the route for testing/demo
+  const handleSimulate = () => {
+    if (isSimulating) {
+      if (simulationIntervalRef.current) clearInterval(simulationIntervalRef.current);
+      setIsSimulating(false);
+      return;
+    }
+
+    if (!trip.routeGeometry || !trip.routeGeometry.coordinates) {
+      setError("No route path to simulate.");
+      return;
+    }
+
+    setIsSimulating(true);
+    // Ensure coords are [lat, lng]
+    const coords = trip.routeGeometry.coordinates.map(c => [c[1], c[0]]);
+    let currentIndex = 0;
+
+    // Find closest point on route to start from (to resume or start correctly)
+    if (currentPosition) {
+      let minD = Infinity;
+      coords.forEach((c, i) => {
+        const d = calculateDistance(c[0], c[1], currentPosition[0], currentPosition[1]);
+        if (d < minD) {
+          minD = d;
+          currentIndex = i;
+        }
+      });
+    }
+
+    // Move every 1s
+    simulationIntervalRef.current = setInterval(() => {
+      if (currentIndex >= coords.length - 1) {
+        clearInterval(simulationIntervalRef.current);
+        setIsSimulating(false);
+        // Auto-complete at end of simulation
+        handleStopTrip();
+        return;
+      }
+
+      const nextPos = coords[currentIndex];
+      const newPos = nextPos;
+
+      setCurrentPosition(newPos);
+
+      // Force update trip path
+      setTripPath(prev => [...prev, newPos]);
+
+      // Update stats based on simulated movement
+      if (lastPositionRef.current && startTimeRef.current) {
+        const dist = calculateDistance(
+          lastPositionRef.current[0], lastPositionRef.current[1],
+          newPos[0], newPos[1]
+        );
+
+        setTripStats(prev => {
+          const newDistance = prev.distance + dist;
+          const duration = (Date.now() - startTimeRef.current) / 1000 / 60;
+          // Simulate realistic speed (e.g., 20-30 km/h)
+          const simSpeed = 25;
+
+          return {
+            ...prev,
+            distance: newDistance,
+            duration: duration,
+            avgSpeed: duration > 0.1 ? (newDistance / duration) * 60 : simSpeed,
+            maxSpeed: Math.max(prev.maxSpeed, simSpeed)
+          };
+        });
+        lastPositionRef.current = newPos;
+      } else {
+        lastPositionRef.current = newPos;
+      }
+
+      currentIndex++;
+    }, 1000);
+  };
+
+
+
   // Start trip tracking
   const handleStartTrip = async () => {
     try {
       setLoading(true);
       setError('');
-      
+
       // Check if trip is already started
       if (trip.status === 'in_progress') {
         console.log('Trip already in progress, just starting tracking...');
@@ -315,12 +426,12 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         startPositionTracking();
         return;
       }
-      
+
       // Connect to Google Fit for walking/cycling
       if (trip.mode === 'WALK' || trip.mode === 'CYCLE') {
         await connectGoogleFit();
       }
-      
+
       // Prevent starting another trip if a different trip is already tracked in localStorage
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -340,16 +451,16 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
 
       // Start trip on backend
       await startTrip(trip._id);
-      
+
       setIsTracking(true);
       setTripStarted(true);
       startTimeRef.current = Date.now();
-      
+
       if (currentPosition) {
         setTripPath([currentPosition]);
         lastPositionRef.current = currentPosition;
       }
-      
+
       // Reset stats
       setTripStats({
         distance: 0,
@@ -358,13 +469,13 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         maxSpeed: 0
       });
       speedsRef.current = [];
-      
+
       // Start position tracking
       startPositionTracking();
-      
+
       // Save initial state
       saveTripState();
-      
+
     } catch (err) {
       setError('Failed to start trip tracking: ' + err.message);
       console.error('Start trip error:', err);
@@ -378,13 +489,13 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
     try {
       setLoading(true);
       setError('');
-      
+
       // Stop watching position
       if (watchIdRef.current) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
       }
-      
+
       // Get Google Fit data for walking/cycling trips
       let googleFitData = null;
       if (googleFitConnected && (trip.mode === 'WALK' || trip.mode === 'CYCLE')) {
@@ -415,24 +526,24 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
           source: 'google_fit'
         } : null
       };
-      
+
       console.log('Completing trip with data:', completionData);
       const result = await completeTrip(trip._id, completionData);
-      
+
       setIsTracking(false);
       setTripStarted(false);
-      
+
       // Clear saved state
       clearTripState();
 
       // reset arrival flag
       arrivalTriggeredRef.current = false;
-      
+
       // Call parent callback with results
       if (onTripComplete) {
         onTripComplete(result);
       }
-      
+
     } catch (err) {
       setError('Failed to complete trip: ' + err.message);
       console.error('Complete trip error:', err);
@@ -487,7 +598,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
     <div className="space-y-6">
       {/* Trip Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <motion.div 
+        <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="bg-slate-800/50 rounded-xl p-4 text-center"
@@ -496,8 +607,8 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
           <div className="text-2xl font-bold text-white">{tripStats.distance.toFixed(2)}</div>
           <div className="text-sm text-slate-400">Distance (km)</div>
         </motion.div>
-        
-        <motion.div 
+
+        <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1 }}
@@ -507,8 +618,8 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
           <div className="text-2xl font-bold text-white">{Math.round(tripStats.duration)}</div>
           <div className="text-sm text-slate-400">Time (min)</div>
         </motion.div>
-        
-        <motion.div 
+
+        <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -518,8 +629,8 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
           <div className="text-2xl font-bold text-white">{Math.round(tripStats.avgSpeed)}</div>
           <div className="text-sm text-slate-400">Avg Speed (km/h)</div>
         </motion.div>
-        
-        <motion.div 
+
+        <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.3 }}
@@ -549,26 +660,26 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
                 Google Fit Connected
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-slate-800/50 rounded-xl p-4 text-center">
                 <div className="text-2xl mb-2">👟</div>
                 <div className="text-xl font-bold text-white">{fitnessData.steps}</div>
                 <div className="text-sm text-slate-400">Steps</div>
               </div>
-              
+
               <div className="bg-slate-800/50 rounded-xl p-4 text-center">
                 <FaFire className="text-orange-400 text-2xl mx-auto mb-2" />
                 <div className="text-xl font-bold text-white">{Math.round(fitnessData.calories)}</div>
                 <div className="text-sm text-slate-400">Calories</div>
               </div>
-              
+
               <div className="bg-slate-800/50 rounded-xl p-4 text-center">
                 <FaHeartbeat className="text-red-400 text-2xl mx-auto mb-2" />
                 <div className="text-xl font-bold text-white">{Math.round(fitnessData.avgHeartRate)}</div>
                 <div className="text-sm text-slate-400">Avg BPM</div>
               </div>
-              
+
               <div className="bg-slate-800/50 rounded-xl p-4 text-center">
                 <div className="text-2xl mb-2">😌</div>
                 <div className="text-xl font-bold text-white">{fitnessData.stressRelief}</div>
@@ -591,10 +702,17 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
-          
+
+          {/* Fit bounds to trip route initially */}
+          <MapBoundsFitter
+            routeGeometry={trip.routeGeometry}
+            startPos={startPos}
+            endPos={endPos}
+          />
+
           {/* Update map center when position changes */}
           <MapUpdater center={currentPosition} zoom={16} followUser={followUser && isTracking} />
-          
+
           {/* Start marker */}
           <Marker position={startPos} icon={startIcon}>
             <Popup>
@@ -605,7 +723,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
               </div>
             </Popup>
           </Marker>
-          
+
           {/* End marker */}
           <Marker position={endPos} icon={endIcon}>
             <Popup>
@@ -616,7 +734,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
               </div>
             </Popup>
           </Marker>
-          
+
           {/* Current position circular marker (smooth-looking) */}
           {currentPosition && (
             <CircleMarker
@@ -633,7 +751,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
               </Popup>
             </CircleMarker>
           )}
-          
+
           {/* Route split: covered (green) and remaining (blue) if we have route geometry */}
           {routeSplit && routeSplit.covered && routeSplit.covered.length > 1 && (
             <Polyline positions={routeSplit.covered} color="#10B981" weight={6} opacity={0.95} />
@@ -652,7 +770,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
               dashArray="10, 10"
             />
           )}
-          
+
           {/* Actual trip path */}
           {tripPath.length > 1 && (
             <Polyline
@@ -670,15 +788,14 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         <div className="flex justify-center gap-4 mb-4">
           <button
             onClick={() => setFollowUser(!followUser)}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
-              followUser 
-                ? 'bg-emerald-500 text-white' 
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            }`}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${followUser
+              ? 'bg-emerald-500 text-white'
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
           >
             {followUser ? '📍 Following' : '🗺️ Free View'}
           </button>
-          
+
           {(trip.mode === 'WALK' || trip.mode === 'CYCLE') && !googleFitConnected && (
             <button
               onClick={connectGoogleFit}
