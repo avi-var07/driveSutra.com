@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaRoute, FaClock, FaLeaf, FaStar, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import AnimatedCard, { TripCard } from '../components/common/AnimatedCard';
@@ -7,6 +7,7 @@ import { tripService } from '../services/tripService';
 import { formatDate } from '../utils/formatDate';
 
 export default function Trips() {
+  const navigate = useNavigate();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, completed, in_progress, planned
@@ -20,10 +21,10 @@ export default function Trips() {
   const fetchTrips = async () => {
     try {
       setLoading(true);
-      const response = await tripService.getUserTrips({ 
-        page, 
-        limit: 10, 
-        status: filter === 'all' ? undefined : filter 
+      const response = await tripService.getUserTrips({
+        page,
+        limit: 10,
+        status: filter === 'all' ? undefined : filter
       });
       setTrips(response.trips);
       setPagination(response.pagination);
@@ -93,12 +94,11 @@ export default function Trips() {
           {['all', 'completed', 'in_progress', 'planned'].map((status) => (
             <button
               key={status}
-              onClick={() => {setFilter(status); setPage(1);}}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                filter === status
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
+              onClick={() => { setFilter(status); setPage(1); }}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === status
+                ? 'bg-emerald-600 text-white'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
             >
               {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
             </button>
@@ -138,7 +138,7 @@ export default function Trips() {
                 }}
                 delay={index * 0.1}
                 clickable
-                onClick={() => window.location.href = `/trips/${trip._id}`}
+                onClick={() => navigate(`/trips/${trip._id}`)}
               />
             ))}
           </div>
