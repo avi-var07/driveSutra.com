@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  FaEnvelope, 
-  FaLock, 
+
+import {
+  FaEnvelope,
+  FaLock,
   FaCheckCircle,
   FaShieldAlt,
   FaKey,
@@ -11,6 +12,7 @@ import {
   FaEye,
   FaEyeSlash
 } from 'react-icons/fa';
+import api from '../../services/api';
 
 const ForgetPassword = () => {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Password, 4: Success
@@ -28,7 +30,7 @@ const ForgetPassword = () => {
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!email.trim()) {
       setError('Email is required');
       return;
@@ -43,28 +45,23 @@ const ForgetPassword = () => {
 
     try {
       // API call to send OTP via nodemailer
-      const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
+      const response = await api.post('/auth/forgot-password', { email });
+      const { data } = response;
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (data.success || response.status === 200) {
         setStep(2);
       } else {
         setError(data.message || 'Failed to send OTP');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(err.response?.data?.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleOtpChange = (index, value) => {
-   
+
 
     const newOtp = [...otp];
     newOtp[index] = value;
@@ -94,25 +91,20 @@ const ForgetPassword = () => {
 
     try {
       // API call to verify OTP
-      const response = await fetch('http://localhost:5000/api/auth/verify-forgot-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email,
-          otp: otpCode 
-        })
+      const response = await api.post('/auth/verify-forgot-otp', {
+        email,
+        otp: otpCode
       });
+      const { data } = response;
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (data.success || response.status === 200) {
         setOtpToken(data.resetToken); // Store reset token for password change
         setStep(3);
       } else {
         setError(data.message || 'Invalid OTP');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(err.response?.data?.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -135,19 +127,14 @@ const ForgetPassword = () => {
 
     try {
       // API call to reset password
-      const response = await fetch('http://localhost:5000/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          resetToken: otpToken,
-          newPassword
-        })
+      const response = await api.post('/auth/reset-password', {
+        email,
+        resetToken: otpToken,
+        newPassword
       });
+      const { data } = response;
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (data.success || response.status === 200) {
         setStep(4);
         // Redirect to unified auth page after 3 seconds
         setTimeout(() => {
@@ -157,7 +144,7 @@ const ForgetPassword = () => {
         setError(data.message || 'Failed to reset password');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(err.response?.data?.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -166,22 +153,16 @@ const ForgetPassword = () => {
   const handleResendOTP = async () => {
     setOtp(['', '', '', '', '', '']);
     setError('');
-    
+
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
+      const response = await api.post('/auth/forgot-password', { email });
+      // eslint-disable-next-line no-unused-vars
+      const { data } = response;
 
-      const data = await response.json();
-      
-      if (!response.ok) {
-        setError(data.message || 'Failed to resend OTP');
-      }
+      // Axios throws on non-2xx, so if we are here it likely succeeded (or check data.success)
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(err.response?.data?.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -203,18 +184,16 @@ const ForgetPassword = () => {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: s * 0.08 }}
-                className={`flex items-center justify-center w-9 h-9 rounded-full font-bold text-sm transition-all duration-300 ${
-                  step >= s
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/50'
-                    : 'bg-emerald-950/30 border border-emerald-800/30 text-slate-500'
-                }`}
+                className={`flex items-center justify-center w-9 h-9 rounded-full font-bold text-sm transition-all duration-300 ${step >= s
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/50'
+                  : 'bg-emerald-950/30 border border-emerald-800/30 text-slate-500'
+                  }`}
               >
                 {step > s ? <FaCheckCircle className="text-sm" /> : s}
               </motion.div>
               {s < 4 && (
-                <div className={`h-0.5 w-8 transition-all duration-300 ${
-                  step > s ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-emerald-800/30'
-                }`} />
+                <div className={`h-0.5 w-8 transition-all duration-300 ${step > s ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-emerald-800/30'
+                  }`} />
               )}
             </React.Fragment>
           ))}

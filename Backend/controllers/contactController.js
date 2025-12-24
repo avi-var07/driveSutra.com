@@ -6,9 +6,9 @@ export async function sendContactMessage(req, res) {
     const { name, email, subject, category, message } = req.body;
 
     if (!name || !email || !subject || !message) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'All fields are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required'
       });
     }
 
@@ -110,7 +110,7 @@ export async function sendContactMessage(req, res) {
             <p>In the meantime, feel free to explore our platform and start tracking your eco-friendly journeys!</p>
             
             <div style="text-align: center;">
-              <a href="http://localhost:5173/dashboard" class="button">Go to Dashboard</a>
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard" class="button">Go to Dashboard</a>
             </div>
 
             <div class="footer">
