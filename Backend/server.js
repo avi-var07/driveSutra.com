@@ -28,7 +28,7 @@ const corsOptions = {
     "http://localhost:3000",
     "https://drivesutrago.vercel.app",
     "https://drivesutra.vercel.app",
-    "https://drivesutra-backend.onrender.com" // Allow self for testing
+    "https://drivesutrago-com-backend.onrender.com" // Allow self for testing
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
