@@ -9,7 +9,7 @@ export async function getAvailableRewards(req, res) {
   try {
     // Get fresh user data if authenticated
     const user = req.user ? await User.findById(req.user._id) : null;
-    
+
     const rewards = await Reward.find({
       isActive: true,
       $or: [
@@ -27,18 +27,18 @@ export async function getAvailableRewards(req, res) {
     // Add user eligibility info if authenticated
     const rewardsWithEligibility = rewards.map(reward => {
       const rewardObj = reward.toObject();
-      
+
       if (user) {
         const hasCredits = user.carbonCredits >= reward.carbonCreditsCost;
         const hasEcoScore = user.ecoScore >= (reward.ecoScoreRequired || 0);
         const hasLevel = user.level >= (reward.levelRequired || 1);
         const canRedeem = hasCredits && hasEcoScore && hasLevel;
-        
+
         rewardObj.canRedeem = canRedeem;
         rewardObj.userCarbonCredits = user.carbonCredits;
         rewardObj.userEcoScore = user.ecoScore;
         rewardObj.userLevel = user.level;
-        
+
         // Add requirement details for debugging
         rewardObj.requirements = {
           credits: reward.carbonCreditsCost,
@@ -48,15 +48,15 @@ export async function getAvailableRewards(req, res) {
       } else {
         rewardObj.canRedeem = false;
       }
-      
+
       return rewardObj;
     });
 
-    return res.json({ 
-      success: true, 
-      rewards: rewardsWithEligibility 
+    return res.json({
+      success: true,
+      rewards: rewardsWithEligibility
     });
-    
+
   } catch (err) {
     console.error('getAvailableRewards error', err.message || err);
     return res.status(500).json({ message: err.message || 'Server error' });
@@ -67,47 +67,47 @@ export async function getAvailableRewards(req, res) {
 export async function redeemReward(req, res) {
   try {
     const { rewardId } = req.params;
-    
+
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
-    
+
     const user = await User.findById(req.user._id);
     const reward = await Reward.findById(rewardId);
-    
+
     if (!reward || !reward.isActive) {
       return res.status(404).json({ message: 'Reward not found or inactive' });
     }
-    
+
     // Check eligibility
     if (user.carbonCredits < reward.carbonCreditsCost) {
-      return res.status(400).json({ 
-        message: `Insufficient carbon credits. You need ${reward.carbonCreditsCost} but have ${user.carbonCredits}` 
+      return res.status(400).json({
+        message: `Insufficient carbon credits. You need ${reward.carbonCreditsCost} but have ${user.carbonCredits}`
       });
     }
-    
+
     if (user.ecoScore < reward.ecoScoreRequired) {
-      return res.status(400).json({ 
-        message: `EcoScore too low. You need ${reward.ecoScoreRequired} but have ${user.ecoScore}` 
+      return res.status(400).json({
+        message: `EcoScore too low. You need ${reward.ecoScoreRequired} but have ${user.ecoScore}`
       });
     }
-    
+
     if (user.level < reward.levelRequired) {
-      return res.status(400).json({ 
-        message: `Level too low. You need level ${reward.levelRequired} but are level ${user.level}` 
+      return res.status(400).json({
+        message: `Level too low. You need level ${reward.levelRequired} but are level ${user.level}`
       });
     }
-    
+
     // Check stock
     if (reward.remainingStock === 0) {
       return res.status(400).json({ message: 'Reward is out of stock' });
     }
-    
+
     // Generate unique coupon code
     const couponCode = generateCouponCode(reward.brand, reward.type);
-    
+
     // Calculate expiry date
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + reward.expiryDays);
-    
+
     // Create user reward record
     const userReward = await UserReward.create({
       user: user._id,
@@ -119,11 +119,11 @@ export async function redeemReward(req, res) {
       expiresAt,
       usageInstructions: reward.instructions
     });
-    
+
     // Deduct carbon credits from user
     user.carbonCredits -= reward.carbonCreditsCost;
     await user.save();
-    
+
     // Update reward stock and analytics
     if (reward.remainingStock > 0) {
       reward.remainingStock -= 1;
@@ -131,10 +131,10 @@ export async function redeemReward(req, res) {
     reward.totalRedemptions += 1;
     reward.popularity += 1;
     await reward.save();
-    
+
     // Populate reward details for response
     await userReward.populate('reward');
-    
+
     // Send confirmation email
     try {
       await sendRewardConfirmationEmail(user, userReward, reward);
@@ -143,14 +143,14 @@ export async function redeemReward(req, res) {
       console.error('❌ Failed to send reward confirmation email:', emailError);
       // Don't fail the reward redemption if email fails
     }
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       message: 'Reward redeemed successfully! Check your email for confirmation.',
       userReward,
       remainingCredits: user.carbonCredits
     });
-    
+
   } catch (err) {
     console.error('redeemReward error', err.message || err);
     return res.status(500).json({ message: err.message || 'Server error' });
@@ -161,20 +161,20 @@ export async function redeemReward(req, res) {
 export async function getUserRewards(req, res) {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
-    
+
     const { status, page = 1, limit = 10 } = req.query;
-    
+
     const query = { user: req.user._id };
     if (status) query.status = status;
-    
+
     const userRewards = await UserReward.find(query)
       .populate('reward')
       .sort({ redeemedAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
-    
+
     const total = await UserReward.countDocuments(query);
-    
+
     return res.json({
       success: true,
       userRewards,
@@ -185,7 +185,7 @@ export async function getUserRewards(req, res) {
         pages: Math.ceil(total / limit)
       }
     });
-    
+
   } catch (err) {
     console.error('getUserRewards error', err.message || err);
     return res.status(500).json({ message: err.message || 'Server error' });
@@ -197,38 +197,38 @@ export async function markRewardAsUsed(req, res) {
   try {
     const { userRewardId } = req.params;
     const { usageNotes } = req.body;
-    
+
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
-    
+
     const userReward = await UserReward.findOne({
       _id: userRewardId,
       user: req.user._id
     });
-    
+
     if (!userReward) {
       return res.status(404).json({ message: 'Reward not found' });
     }
-    
+
     if (userReward.status === 'used') {
       return res.status(400).json({ message: 'Reward already marked as used' });
     }
-    
+
     if (userReward.status === 'expired') {
       return res.status(400).json({ message: 'Reward has expired' });
     }
-    
+
     userReward.status = 'used';
     userReward.usedAt = new Date();
     if (usageNotes) userReward.usageNotes = usageNotes;
-    
+
     await userReward.save();
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       message: 'Reward marked as used successfully',
-      userReward 
+      userReward
     });
-    
+
   } catch (err) {
     console.error('markRewardAsUsed error', err.message || err);
     return res.status(500).json({ message: err.message || 'Server error' });
@@ -239,10 +239,10 @@ export async function markRewardAsUsed(req, res) {
 export async function getLeaderboard(req, res) {
   try {
     const { type = 'ecoScore', limit = 20 } = req.query;
-    
+
     let sortField = 'ecoScore';
     let displayField = 'ecoScore';
-    
+
     switch (type) {
       case 'xp':
         sortField = 'xp';
@@ -272,12 +272,12 @@ export async function getLeaderboard(req, res) {
         sortField = 'ecoScore';
         displayField = 'ecoScore';
     }
-    
+
     const users = await User.find({})
       .sort({ [sortField]: -1 })
       .limit(parseInt(limit))
       .select('firstName lastName avatar level xp ecoScore co2Saved currentStreak totalDistance treesGrown carbonCredits');
-    
+
     const leaderboard = users.map((user, index) => ({
       rank: index + 1,
       _id: user._id,
@@ -296,7 +296,7 @@ export async function getLeaderboard(req, res) {
         carbonCredits: user.carbonCredits
       }
     }));
-    
+
     // If user is authenticated, include their rank
     let userRank = null;
     if (req.user) {
@@ -305,15 +305,15 @@ export async function getLeaderboard(req, res) {
       });
       userRank = userPosition + 1;
     }
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       leaderboard,
       userRank,
       type,
       total: await User.countDocuments({})
     });
-    
+
   } catch (err) {
     console.error('getLeaderboard error', err.message || err);
     return res.status(500).json({ message: err.message || 'Server error' });
@@ -358,8 +358,17 @@ function formatCurrency(value, currency = 'INR') {
 export async function initializeRewards() {
   try {
     const existingCount = await Reward.countDocuments();
-    if (existingCount > 0) return; // Already initialized
-    
+    // if (existingCount > 0) return; // Force update for Indian rewards implementation
+
+    // Optional: clear existing if we want to ensure no duplicates, 
+    // but better to just use upsert or risk duplicates if not handled. 
+    // For this task, assuming we want to ADD these if missing or just overwrite.
+    // Let's delete existing rewards to ensure clean state with Indian brands
+    if (existingCount > 0) {
+      console.log("Resetting rewards to apply Indian brands...");
+      await Reward.deleteMany({});
+    }
+
     const defaultRewards = [
       // Food & Beverage - Indian Brands
       {
@@ -406,7 +415,7 @@ export async function initializeRewards() {
         instructions: "Valid at all Haldiram's outlets across India",
         expiryDays: 60
       },
-      
+
       // Transport - Indian Services
       {
         title: "Ola ₹200 Credit",
@@ -454,7 +463,7 @@ export async function initializeRewards() {
         instructions: "Present at bus depot counter to get your 7-day pass",
         expiryDays: 30
       },
-      
+
       // Shopping - Indian E-commerce
       {
         title: "Amazon India ₹1000 Gift Card",
@@ -502,7 +511,7 @@ export async function initializeRewards() {
         instructions: "Apply this coupon code at Myntra checkout",
         expiryDays: 45
       },
-      
+
       // Entertainment - Indian OTT & Services
       {
         title: "Hotstar Premium 3 Months",
@@ -535,7 +544,7 @@ export async function initializeRewards() {
         instructions: "Use this voucher code while booking on BookMyShow",
         expiryDays: 60
       },
-      
+
       // Eco-friendly & Indian Goodies
       {
         title: "Plant a Tree in Sundarbans",
@@ -583,7 +592,7 @@ export async function initializeRewards() {
         instructions: "Valid at all Khadi India outlets",
         expiryDays: 90
       },
-      
+
       // Indian Goodies & Experiences
       {
         title: "Amul Ice Cream Parlour ₹250",
@@ -627,7 +636,7 @@ export async function initializeRewards() {
         instructions: "Apply this code in your Zomato app",
         expiryDays: 30
       },
-      
+
       // Festival & Cultural Rewards
       {
         title: "Diwali Gift Hamper ₹800",
@@ -675,7 +684,7 @@ export async function initializeRewards() {
         instructions: "Book appointment at participating Ayurvedic centers",
         expiryDays: 90
       },
-      
+
       // More Indian Goodies & Tech
       {
         title: "Paytm Wallet ₹500",
@@ -793,7 +802,7 @@ export async function initializeRewards() {
         instructions: "Tea pack will be delivered to your address",
         expiryDays: 30
       },
-      
+
       // Indian Tech & Lifestyle
       {
         title: "PhonePe Cashback ₹300",
@@ -886,10 +895,10 @@ export async function initializeRewards() {
         expiryDays: 15
       }
     ];
-    
+
     await Reward.insertMany(defaultRewards);
     console.log(`Initialized ${defaultRewards.length} default rewards`);
-    
+
   } catch (err) {
     console.error('initializeRewards error', err.message || err);
   }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaTree, FaLeaf, FaSeedling, FaGlobeAmericas, FaWater, FaCloud } from 'react-icons/fa';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import AnimatedCard, { StatsCard } from '../components/common/AnimatedCard';
 import { useAuth } from '../context/AuthContext';
 import { userService } from '../services/userService';
@@ -25,14 +26,14 @@ export default function Forest() {
       // Get user stats for forest visualization
       const response = await userService.getUserStats();
       const stats = response.stats || {};
-      
+
       const treesGrown = stats.treesGrown || user?.treesGrown || 0;
       const co2Saved = stats.co2Saved || user?.co2Saved || 0;
-      
+
       // Calculate forest level based on trees grown
       const forestLevel = Math.floor(treesGrown / 10) + 1;
       const nextLevelTrees = forestLevel * 10;
-      
+
       setForestData({
         treesGrown,
         co2Saved,
@@ -64,13 +65,13 @@ export default function Forest() {
   const generateTrees = (count) => {
     const trees = [];
     const maxTrees = Math.min(count, 50); // Limit visual trees for performance
-    
+
     for (let i = 0; i < maxTrees; i++) {
       const size = Math.random() * 0.5 + 0.5; // 0.5 to 1
       const x = Math.random() * 80 + 10; // 10% to 90% width
       const y = Math.random() * 60 + 30; // 30% to 90% height
       const treeType = Math.random() > 0.5 ? '🌲' : '🌳';
-      
+
       trees.push({
         id: i,
         x,
@@ -80,7 +81,7 @@ export default function Forest() {
         delay: i * 0.1
       });
     }
-    
+
     return trees;
   };
 
@@ -168,10 +169,10 @@ export default function Forest() {
       <div className="relative h-96 overflow-hidden">
         {/* Background Gradient */}
         <div className={`absolute inset-0 bg-gradient-to-b ${forestStage.color} opacity-20`} />
-        
+
         {/* Ground */}
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-green-900/40 to-transparent" />
-        
+
         {/* Trees */}
         <div className="absolute inset-0">
           {trees.map((tree) => (
@@ -186,12 +187,12 @@ export default function Forest() {
               }}
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ 
+              transition={{
                 delay: tree.delay,
                 duration: 0.5,
                 ease: "easeOut"
               }}
-              whileHover={{ 
+              whileHover={{
                 scale: tree.size * 1.2 + 0.8,
                 transition: { duration: 0.2 }
               }}
@@ -225,20 +226,25 @@ export default function Forest() {
           ))}
         </div>
 
+
+        {/* Lottie Growing Tree Animation - Always visible but scales with progress */}
+        <div className="absolute inset-0 flex items-end justify-center pointer-events-none pb-10">
+          <div className="w-64 h-64 md:w-96 md:h-96 opacity-90">
+            <DotLottieReact
+              src="https://assets10.lottiefiles.com/packages/lf20_hoax0q.json" // Animated Tree
+              loop
+              autoplay
+            />
+          </div>
+        </div>
+
         {/* Empty State */}
         {forestData.treesGrown === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
             <div className="text-center">
-              <FaSeedling className="text-6xl text-slate-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Your Forest Awaits</h3>
-              <p className="text-slate-400 mb-6">Complete eco-friendly trips to grow your first tree!</p>
-              <motion.div
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-4xl"
-              >
-                🌱
-              </motion.div>
+              <FaSeedling className="text-6xl text-emerald-400 mx-auto mb-4 animate-bounce" />
+              <h3 className="text-xl font-semibold mb-2 text-white">Your Forest Awaits</h3>
+              <p className="text-slate-200 mb-6">Complete eco-friendly trips to grow your first tree!</p>
             </div>
           </div>
         )}
