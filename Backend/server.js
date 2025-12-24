@@ -21,19 +21,36 @@ dotenv.config();
 const app = express();
 
 /* ---------- Middlewares ---------- */
+// 1. CORS - MUST be first
 const corsOptions = {
   origin: [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://drivesutrago.vercel.app",
-    "https://drivesutra.vercel.app"
+    "https://drivesutra.vercel.app",
+    "https://drivesutra-backend.onrender.com" // Allow self for testing
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  credentials: true
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
+// Force preflight handling for everything
 app.options('*', cors(corsOptions));
+
+// 2. Debug Logger
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('Origin:', req.headers.origin);
+  next();
+});
+
+// 3. Body Parsers
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -48,6 +65,10 @@ app.use("/api/rewards", rewardRoutes);
 app.use("/api/contact", contactRoutes);
 
 /* ---------- Health ---------- */
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
+
 app.get("/api/health", (req, res) => {
   res.json({
     status: "OK",
@@ -72,16 +93,21 @@ app.use("*", (req, res) => {
 
 /* ---------- START SERVER ---------- */
 const startServer = async () => {
-  await connectDB();
+  try {
+    await connectDB();
 
-  await initializeAchievements();
-  await initializeChallenges();
-  await initializeRewards();
+    await initializeAchievements();
+    await initializeChallenges();
+    await initializeRewards();
 
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`🚀 EcoDrive Backend running on port ${PORT}`);
-  });
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 EcoDrive Backend running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
 };
 
 startServer();
