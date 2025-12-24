@@ -1,10 +1,10 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  withCredentials: true,
 });
 
-// Add token to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -16,12 +16,10 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Handle response errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear storage and redirect to unified auth page
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/auth";
