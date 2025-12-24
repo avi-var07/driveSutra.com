@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import api from "../services/api";
 import { motion } from "framer-motion";
 import {
   FaEnvelope,
@@ -33,16 +34,9 @@ export default function Contact() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(
-        "http://localhost:5000/api/contact/send-message",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        }
-      );
+      const res = await api.post("/contact/send-message", formData);
 
-      const data = await res.json();
+      const { data } = await api.post("/contact/send-message", formData);
 
       if (data.success) {
         setSubmitted(true);
@@ -62,47 +56,47 @@ export default function Contact() {
       setIsSubmitting(false);
     }
   };
-const developers = [
-  {
-    name: "Aviral Ved Varshney",
-    designation: "Lead Full Stack Developer",
-    about:
-      "Passionate about sustainable tech. Works with React, Node.js & MongoDB.",
-    email: "aviralvarshney07@gmail.com",
-    avatar: Aviral,
-    social: {
-      github: "https://github.com/avi-var07",
-      linkedin: "https://www.linkedin.com/in/avi7/",
-      instagram: "https://instagram.com/ae._jethiyaaaa",
+  const developers = [
+    {
+      name: "Aviral Ved Varshney",
+      designation: "Lead Full Stack Developer",
+      about:
+        "Passionate about sustainable tech. Works with React, Node.js & MongoDB.",
+      email: "aviralvarshney07@gmail.com",
+      avatar: Aviral,
+      social: {
+        github: "https://github.com/avi-var07",
+        linkedin: "https://www.linkedin.com/in/avi7/",
+        instagram: "https://instagram.com/ae._jethiyaaaa",
+      },
     },
-  },
-  {
-    name: "Aman Verma",
-    designation: "Lead Frontend Developer",
-    about:
-      "UI/UX focused frontend dev. Expert in React & Tailwind CSS.",
-    email: "amanverma130604@gmail.com",
-    avatar: Aman,
-    social: {
-      github: "https://github.com/aman130604",
-      linkedin: "https://www.linkedin.com/in/aman-verma-0a0997394/",
-      instagram: "https://www.instagram.com/am.a._.n",
+    {
+      name: "Aman Verma",
+      designation: "Lead Frontend Developer",
+      about:
+        "UI/UX focused frontend dev. Expert in React & Tailwind CSS.",
+      email: "amanverma130604@gmail.com",
+      avatar: Aman,
+      social: {
+        github: "https://github.com/aman130604",
+        linkedin: "https://www.linkedin.com/in/aman-verma-0a0997394/",
+        instagram: "https://www.instagram.com/am.a._.n",
+      },
     },
-  },
-  {
-    name: "Prateek Asthana",
-    designation: "Lead AI/ML Developer",
-    about:
-      "Backend & AI systems specialist. Works on scalable APIs.",
-    email: "prateekasthana0912@gmail.com",
-    avatar: Prateek,
-    social: {
-      github: "https://github.com/Prateek-Asthana",
-      linkedin: "https://www.linkedin.com/in/prateek-asthana09/",
-      instagram: "https://www.instagram.com/prateek_asthana_09/",
+    {
+      name: "Prateek Asthana",
+      designation: "Lead AI/ML Developer",
+      about:
+        "Backend & AI systems specialist. Works on scalable APIs.",
+      email: "prateekasthana0912@gmail.com",
+      avatar: Prateek,
+      social: {
+        github: "https://github.com/Prateek-Asthana",
+        linkedin: "https://www.linkedin.com/in/prateek-asthana09/",
+        instagram: "https://www.instagram.com/prateek_asthana_09/",
+      },
     },
-  },
-];
+  ];
 
   return (
     <div className="min-h-screen bg-black text-white">

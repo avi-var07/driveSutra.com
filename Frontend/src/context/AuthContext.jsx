@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { loginAPI, registerAPI, logoutAPI } from "../services/authService";
+import api from "../services/api";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -13,7 +14,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     const storedToken = localStorage.getItem("token");
-    
+
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
@@ -26,7 +27,7 @@ export const AuthProvider = ({ children }) => {
     if (storedToken) {
       setToken(storedToken);
     }
-    
+
     setLoading(false);
   }, []);
 
@@ -35,7 +36,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await loginAPI(email, password);
       const { data } = response;
-      
+
       if (data.success) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
@@ -61,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await registerAPI(formData);
       const { data } = response;
-      
+
       if (data.success) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
@@ -109,15 +110,10 @@ export const AuthProvider = ({ children }) => {
   // REFRESH USER DATA from server
   const refreshUser = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/users/profile', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
+      const response = await api.get('/users/profile');
+
+      if (response.status === 200) {
+        const data = response.data;
         if (data.success) {
           const updatedUser = { ...user, ...data.user };
           setUser(updatedUser);
@@ -132,14 +128,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        loading, 
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
         token,
-        login, 
-        register, 
-        logout, 
+        login,
+        register,
+        logout,
         updateUser,
         refreshUser,
         isAuthenticated: !!user && !!token
