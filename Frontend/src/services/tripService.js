@@ -132,8 +132,14 @@ export async function createTrip(tripData) {
 }
 
 // Start a trip
-export async function startTrip(tripId) {
-  const res = await api.post(`/trips/${tripId}/start`);
+export async function startTrip(tripId, enableTracking = true) {
+  const res = await api.post(`/trips/${tripId}/start`, { enableTracking });
+  return res.data;
+}
+
+// Update trip location (real-time tracking)
+export async function updateTripLocation(tripId, locationData) {
+  const res = await api.post(`/trips/${tripId}/location`, locationData);
   return res.data;
 }
 
@@ -159,6 +165,7 @@ export const tripService = {
   getRouteOptions,
   createTrip,
   startTrip,
+  updateTripLocation,
   completeTrip,
   getUserTrips,
   getTripDetails

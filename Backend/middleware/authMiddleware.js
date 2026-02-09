@@ -93,3 +93,77 @@ export const optionalAuth = async (req, res, next) => {
 };
 
 export default protect;
+
+// Admin authentication middleware
+export const protectAdmin = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ 
+        success: false,
+        message: "No token provided, authorization denied" 
+      });
+    }
+
+    const token = authHeader.split(" ")[1];
+    
+    if (!token) {
+      return res.status(401).json({ 
+        success: false,
+        message: "Token not found" 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    if (!decoded.isAdmin) {
+      return res.status(403).json({ 
+        success: false,
+        message: "Access denied. Admin only." 
+      });
+    }
+
+    // Import Admin model dynamically to avoid circular dependency
+    const { default: Admin } = await import('../models/Admin.js');
+    
+    const admin = await Admin.findById(decoded.id).select("-password");
+    if (!admin) {
+      return res.status(401).json({ 
+        success: false,
+        message: "Admin not found" 
+      });
+    }
+
+    if (!admin.isActive) {
+      return res.status(403).json({ 
+        success: false,
+        message: "Admin account is deactivated" 
+      });
+    }
+
+    req.admin = admin; // attach full admin object
+    next();
+  } catch (err) {
+    console.error("Admin auth error:", err.message);
+    
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ 
+        success: false,
+        message: "Token expired" 
+      });
+    }
+    
+    if (err.name === "JsonWebTokenError") {
+      return res.status(401).json({ 
+        success: false,
+        message: "Invalid token" 
+      });
+    }
+    
+    return res.status(401).json({ 
+      success: false,
+      message: "Authentication failed" 
+    });
+  }
+};

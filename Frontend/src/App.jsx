@@ -21,6 +21,8 @@ import AchievementsPage from "./pages/Achievements";
 import AboutPage from "./pages/About";
 import ContactPage from "./pages/Contact";
 import NavigationPage from "./pages/NavigationPage";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 
 // Small placeholder used for routes we don't want to import heavy components for now
 const RoutesPlaceholder = ({ name }) => <div className="text-white p-20 text-4xl">{name} Page Placeholder</div>;
@@ -90,6 +92,10 @@ function App() {
         <Route path="/eco-map" element={<EcoDriveMap />}/>
         <Route path="/navigation" element={<ProtectedRoute><NavigationPage /></ProtectedRoute>} />
         <Route path="/trip/:tripId/track" element={<ProtectedRoute><TripTracker /></ProtectedRoute>} />
+
+        {/* ADMIN ROUTES */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" />} />

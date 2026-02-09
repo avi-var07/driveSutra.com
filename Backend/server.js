@@ -11,6 +11,9 @@ import challengeRoutes from "./routes/challengeRoutes.js";
 import achievementRoutes from "./routes/achievementRoutes.js";
 import rewardRoutes from "./routes/rewardRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
+import treePlantingRoutes from "./routes/treePlantingRoutes.js";
+import publicTransportRoutes from "./routes/publicTransportRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 import { initializeAchievements } from "./controllers/achievementController.js";
 import { initializeChallenges } from "./utils/initializeChallenges.js";
@@ -63,6 +66,9 @@ app.use("/api/challenges", challengeRoutes);
 app.use("/api/achievements", achievementRoutes);
 app.use("/api/rewards", rewardRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/trees", treePlantingRoutes);
+app.use("/api/public-transport", publicTransportRoutes);
+app.use("/api/admin", adminRoutes);
 
 /* ---------- Health ---------- */
 app.get("/", (req, res) => {

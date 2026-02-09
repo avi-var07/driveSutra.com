@@ -10,6 +10,7 @@ router.post('/route-options', tripController.getRouteOptions);
 // Trip management (all protected)
 router.post('/', protect, tripController.createTrip);
 router.post('/:tripId/start', protect, tripController.startTrip);
+router.post('/:tripId/location', protect, tripController.updateTripLocation);
 router.post('/:tripId/complete', protect, tripController.completeTrip);
 router.get('/', protect, tripController.getUserTrips);
 router.get('/:tripId', protect, tripController.getTripDetails);
