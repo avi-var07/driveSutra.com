@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaRoute, FaClock, FaGasPump, FaLeaf, FaTachometerAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import { MdSpeed, MdDirections, MdEco } from 'react-icons/md';
+import PublicTransportDetails from './PublicTransportDetails';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -368,6 +369,19 @@ export default function EnhancedRouteDisplay({
             <MdDirections className="text-xl" />
             Start {currentRoute.mode} Trip
           </motion.button>
+        </div>
+      )}
+      
+      {/* Public Transport Details - Show when PUBLIC mode is selected */}
+      {currentRoute && currentRoute.mode === 'PUBLIC' && startLocation && endLocation && (
+        <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-6">
+          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            🚇 Public Transport Options
+          </h3>
+          <PublicTransportDetails 
+            startLocation={startLocation}
+            endLocation={endLocation}
+          />
         </div>
       )}
     </div>

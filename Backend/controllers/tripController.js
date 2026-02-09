@@ -163,6 +163,7 @@ export async function createTrip(req, res) {
 export async function startTrip(req, res) {
 	try {
 		const { tripId } = req.params;
+		const { enableTracking = false } = req.body;
 		
 		if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 		
@@ -175,6 +176,7 @@ export async function startTrip(req, res) {
 
 		trip.status = 'in_progress';
 		trip.startTime = new Date();
+		trip.tracking.enabled = enableTracking;
 		await trip.save();
 
 		return res.json({ 
@@ -185,6 +187,65 @@ export async function startTrip(req, res) {
 		
 	} catch (err) {
 		console.error('startTrip error', err.message || err);
+		return res.status(500).json({ message: err.message || 'Server error' });
+	}
+}
+
+// Update trip location (real-time tracking)
+export async function updateTripLocation(req, res) {
+	try {
+		const { tripId } = req.params;
+		const { lat, lng, accuracy, speed, timestamp } = req.body;
+		
+		if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+		
+		const trip = await Trip.findOne({ _id: tripId, user: req.user._id });
+		if (!trip) return res.status(404).json({ message: 'Trip not found' });
+		
+		if (trip.status !== 'in_progress') {
+			return res.status(400).json({ message: 'Trip is not in progress' });
+		}
+
+		if (!trip.tracking.enabled) {
+			return res.status(400).json({ message: 'Tracking not enabled for this trip' });
+		}
+
+		// Add location to history
+		trip.tracking.locationHistory.push({
+			lat: Number(lat),
+			lng: Number(lng),
+			accuracy: Number(accuracy),
+			speed: Number(speed) || 0,
+			timestamp: new Date(timestamp || Date.now())
+		});
+
+		// Update max speed
+		const speedKmh = (speed || 0) * 3.6; // Convert m/s to km/h
+		if (speedKmh > trip.tracking.maxSpeedRecorded) {
+			trip.tracking.maxSpeedRecorded = speedKmh;
+		}
+
+		// Calculate distance from last location
+		if (trip.tracking.locationHistory.length > 1) {
+			const lastLocation = trip.tracking.locationHistory[trip.tracking.locationHistory.length - 2];
+			const distance = calculateDistance(lastLocation.lat, lastLocation.lng, lat, lng);
+			trip.tracking.totalDistanceTracked += distance;
+		}
+
+		await trip.save();
+
+		return res.json({ 
+			success: true, 
+			message: 'Location updated',
+			tracking: {
+				totalDistance: trip.tracking.totalDistanceTracked,
+				maxSpeed: trip.tracking.maxSpeedRecorded,
+				locationCount: trip.tracking.locationHistory.length
+			}
+		});
+		
+	} catch (err) {
+		console.error('updateTripLocation error', err.message || err);
 		return res.status(500).json({ message: err.message || 'Server error' });
 	}
 }
@@ -475,7 +536,8 @@ async function updateUserStats(user, trip, rewards) {
 export default { 
 	getRouteOptions, 
 	createTrip, 
-	startTrip, 
+	startTrip,
+	updateTripLocation, 
 	completeTrip, 
 	getUserTrips, 
 	getTripDetails 

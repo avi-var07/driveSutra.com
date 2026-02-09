@@ -59,16 +59,49 @@ const tripSchema = new mongoose.Schema({
   verification: {
     ticketUploaded: { type: Boolean, default: false },
     ticketImageUrl: { type: String },
+    transactionVerified: { type: Boolean, default: false },
+    transactionId: { type: String },
     stepsData: {
       steps: { type: Number },
       distance: { type: Number },
-      source: { type: String } // "google_fit", "manual"
+      calories: { type: Number },
+      avgHeartRate: { type: Number },
+      source: { type: String } // "google_fit", "apple_health", "samsung_health", "manual"
     },
     speedAnalysis: {
       avgSpeed: { type: Number },
       maxSpeed: { type: Number },
-      speedViolations: { type: Number, default: 0 }
-    }
+      speedViolations: { type: Number, default: 0 },
+      realTimeTracking: { type: Boolean, default: false }
+    },
+    publicTransport: {
+      metroStation: { type: String },
+      busRoute: { type: String },
+      fare: { type: Number },
+      verificationMethod: { type: String } // "ticket", "transaction", "metro_card"
+    },
+    // Admin verification
+    adminVerified: { type: Boolean, default: false },
+    rejected: { type: Boolean, default: false },
+    rejectionReason: { type: String },
+    adminNotes: { type: String },
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
+    verifiedAt: { type: Date }
+  },
+  
+  // Real-time Tracking Data
+  tracking: {
+    enabled: { type: Boolean, default: false },
+    locationHistory: [{
+      lat: { type: Number },
+      lng: { type: Number },
+      accuracy: { type: Number },
+      speed: { type: Number }, // m/s
+      timestamp: { type: Date }
+    }],
+    totalDistanceTracked: { type: Number, default: 0 },
+    maxSpeedRecorded: { type: Number, default: 0 },
+    avgSpeedRecorded: { type: Number, default: 0 }
   },
   
   // Route Geometry & Metadata
