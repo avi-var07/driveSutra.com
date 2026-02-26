@@ -122,17 +122,13 @@ export async function getPendingTrips(req, res) {
 
     const query = { 
       status: 'completed',
-      mode: 'PUBLIC',
-      $or: [
-        { 'verification.ticketUploaded': true, 'verification.adminVerified': { $ne: true } },
-        { 'verification.transactionVerified': true, 'verification.adminVerified': { $ne: true } }
-      ]
+      verificationStatus: 'pending'
     };
 
     if (mode) query.mode = mode;
 
     const trips = await Trip.find(query)
-      .populate('user', 'firstName lastName email avatar')
+      .populate('user', 'firstName lastName email avatar fraudStrikes')
       .sort({ endTime: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -167,37 +163,92 @@ export async function approveTripVerification(req, res) {
       return res.status(404).json({ message: 'Trip not found' });
     }
 
+    const user = trip.user;
+
     // Mark as admin verified
     trip.verification.adminVerified = true;
     trip.verification.adminNotes = notes;
-    trip.verification.verifiedBy = req.admin.id;
+    trip.verification.verifiedBy = req.admin._id;
     trip.verification.verifiedAt = new Date();
+    trip.verificationStatus = 'approved';
 
     // Adjust EcoScore if provided
     if (adjustedEcoScore && adjustedEcoScore !== trip.ecoScore) {
-      const oldScore = trip.ecoScore;
       trip.ecoScore = adjustedEcoScore;
       
       // Recalculate rewards based on new score
+      const { default: { calculateTripRewards } } = await import('./tripController.js');
       const rewards = calculateTripRewards(adjustedEcoScore, trip.distanceKm, trip.mode);
       trip.xpEarned = rewards.xp;
       trip.carbonCreditsEarned = rewards.carbonCredits;
       trip.co2Saved = rewards.co2Saved;
       trip.treesGrown = rewards.trees;
-
-      // Update user stats
-      const user = trip.user;
-      const scoreDiff = adjustedEcoScore - oldScore;
-      const xpDiff = rewards.xp - trip.xpEarned;
-      const creditsDiff = rewards.carbonCredits - trip.carbonCreditsEarned;
-
-      user.ecoScore = Math.round(
-        (user.ecoScore * user.totalTrips + scoreDiff) / user.totalTrips
-      );
-      user.xp += xpDiff;
-      user.carbonCredits += creditsDiff;
-      await user.save();
     }
+
+    await trip.save();
+
+    // NOW award rewards to user (this was previously done in completeTrip)
+    user.xp += trip.xpEarned;
+    user.carbonCredits += trip.carbonCreditsEarned;
+    user.co2Saved += trip.co2Saved;
+    user.treesGrown += trip.treesGrown;
+    user.totalTrips += 1;
+    user.totalDistance += trip.distanceKm;
+    
+    // Update average EcoScore
+    user.ecoScore = Math.round(
+      (user.ecoScore * (user.totalTrips - 1) + trip.ecoScore) / user.totalTrips
+    );
+    
+    // Update level based on XP
+    const newLevel = Math.floor(user.xp / 1000) + 1;
+    if (newLevel > user.level) {
+      user.level = newLevel;
+    }
+    
+    // Update streak
+    const today = new Date().setHours(0, 0, 0, 0);
+    const lastTripDay = user.lastTripDate ? new Date(user.lastTripDate).setHours(0, 0, 0, 0) : 0;
+    const daysDiff = Math.floor((today - lastTripDay) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff === 1) {
+      user.currentStreak += 1;
+      if (user.currentStreak > user.longestStreak) {
+        user.longestStreak = user.currentStreak;
+      }
+    } else if (daysDiff > 1) {
+      user.currentStreak = 1;
+    }
+    
+    user.lastTripDate = new Date();
+    await user.save();
+
+    // Check for new achievements
+    const { checkAchievements } = await import('./achievementController.js');
+    const newAchievements = await checkAchievements(user._id);
+
+    // Send completion email
+    try {
+      const { sendTripCompletionEmail } = await import('../utils/emailService.js');
+      sendTripCompletionEmail(user, trip, {
+        xp: trip.xpEarned,
+        carbonCredits: trip.carbonCreditsEarned,
+        co2Saved: trip.co2Saved
+      }).catch(() => {});
+    } catch (e) {}
+
+    return res.json({
+      success: true,
+      message: 'Trip approved and rewards awarded',
+      trip,
+      newAchievements
+    });
+
+  } catch (error) {
+    console.error('Approve trip error:', error);
+    return res.status(500).json({ message: error.message || 'Server error' });
+  }
+}
 
     await trip.save();
 
@@ -228,25 +279,46 @@ export async function rejectTripVerification(req, res) {
       return res.status(404).json({ message: 'Trip not found' });
     }
 
+    const user = trip.user;
+
     // Mark as rejected
     trip.verification.adminVerified = false;
     trip.verification.rejected = true;
     trip.verification.rejectionReason = reason;
     trip.verification.adminNotes = notes;
-    trip.verification.verifiedBy = req.admin.id;
+    trip.verification.verifiedBy = req.admin._id;
     trip.verification.verifiedAt = new Date();
+    trip.verificationStatus = 'rejected';
 
-    // Reduce EcoScore and rewards
-    trip.ecoScore = Math.max(0, trip.ecoScore - 30); // Penalty
-    trip.xpEarned = Math.floor(trip.xpEarned * 0.5); // 50% reduction
-    trip.carbonCreditsEarned = Math.floor(trip.carbonCreditsEarned * 0.5);
+    // NO rewards awarded (they were never given in the first place)
+    trip.xpEarned = 0;
+    trip.carbonCreditsEarned = 0;
+    trip.co2Saved = 0;
+    trip.treesGrown = 0;
+
+    await trip.save();
 
     // Add fraud strike to user
-    const user = trip.user;
     user.fraudStrikes += 1;
     
     if (user.fraudStrikes >= 3) {
       user.isVerified = false; // Require re-verification
+    }
+    
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'Trip rejected. No rewards awarded.',
+      trip,
+      fraudStrikes: user.fraudStrikes
+    });
+
+  } catch (error) {
+    console.error('Reject trip verification error:', error);
+    return res.status(500).json({ message: error.message || 'Server error' });
+  }
+}
     }
 
     await user.save();

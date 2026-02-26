@@ -31,12 +31,57 @@ const userSchema = new mongoose.Schema(
     fuelType: { type: String, enum: ["petrol", "diesel", "electric", "hybrid", "none"], default: "petrol" },
     
     // Achievements & Challenges
-    unlockedAchievements: [{ type: String }], // achievement IDs
+    unlockedAchievements: [{ 
+      achievementId: { type: String },
+      unlockedAt: { type: Date, default: Date.now }
+    }],
     activeChallenges: [{ 
       challengeId: String,
       progress: { type: Number, default: 0 },
       joinedAt: { type: Date, default: Date.now }
     }],
+    
+    // Health Profile for Personalized Recommendations
+    healthProfile: {
+      age: { type: Number },
+      weight: { type: Number }, // in kg
+      height: { type: Number }, // in cm
+      bmi: { type: Number },
+      activityLevel: { 
+        type: String, 
+        enum: ['sedentary', 'light', 'moderate', 'active', 'very_active'],
+        default: 'moderate'
+      },
+      fitnessGoal: {
+        type: String,
+        enum: ['weight_loss', 'fitness', 'health', 'environment', 'all'],
+        default: 'all'
+      },
+      medicalConditions: [{ type: String }], // e.g., 'asthma', 'knee_pain'
+      walkingCapacity: { type: Number, default: 5 }, // max km comfortable walking
+      cyclingCapacity: { type: Number, default: 15 }, // max km comfortable cycling
+      preferredModes: [{ type: String }], // preferred transport modes
+      avoidModes: [{ type: String }] // modes to avoid
+    },
+    
+    // Travel Behavior Analysis
+    travelBehavior: {
+      avgTripDistance: { type: Number, default: 0 },
+      mostUsedMode: { type: String },
+      peakTravelTime: { type: String }, // 'morning', 'afternoon', 'evening', 'night'
+      weekdayTrips: { type: Number, default: 0 },
+      weekendTrips: { type: Number, default: 0 },
+      rushHourTrips: { type: Number, default: 0 },
+      weatherPreference: { type: String }, // 'all_weather', 'fair_weather_only'
+      lastModeUsed: { type: String },
+      modeFrequency: {
+        PUBLIC: { type: Number, default: 0 },
+        WALK: { type: Number, default: 0 },
+        CYCLE: { type: Number, default: 0 },
+        CAR: { type: Number, default: 0 },
+        BIKE: { type: Number, default: 0 }
+      }
+    },
     
     // Anti-fraud tracking
     fraudStrikes: { type: Number, default: 0 },

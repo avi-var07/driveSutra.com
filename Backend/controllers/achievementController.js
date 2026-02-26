@@ -22,11 +22,14 @@ export async function getAchievements(req, res) {
     const user = await User.findById(req.user._id);
     const unlockedAchievements = user.unlockedAchievements || [];
     
-    const achievementsWithStatus = achievements.map(achievement => ({
-      ...achievement.toObject(),
-      isUnlocked: unlockedAchievements.includes(achievement.id),
-      unlockedAt: null // TODO: Add unlock timestamp to user model
-    }));
+    const achievementsWithStatus = achievements.map(achievement => {
+      const unlocked = unlockedAchievements.find(ua => ua.achievementId === achievement.id);
+      return {
+        ...achievement.toObject(),
+        isUnlocked: !!unlocked,
+        unlockedAt: unlocked ? unlocked.unlockedAt : null
+      };
+    });
     
     return res.json({ success: true, achievements: achievementsWithStatus });
     
@@ -43,16 +46,19 @@ export async function checkAchievements(userId) {
     if (!user) return;
     
     const achievements = await Achievement.find({});
-    const unlockedAchievements = user.unlockedAchievements || [];
+    const unlockedIds = user.unlockedAchievements.map(a => a.achievementId);
     const newUnlocks = [];
     
     for (const achievement of achievements) {
-      if (unlockedAchievements.includes(achievement.id)) continue;
+      if (unlockedIds.includes(achievement.id)) continue;
       
       const isUnlocked = await checkAchievementRequirements(userId, achievement.requirements);
       
       if (isUnlocked) {
-        unlockedAchievements.push(achievement.id);
+        user.unlockedAchievements.push({
+          achievementId: achievement.id,
+          unlockedAt: new Date()
+        });
         newUnlocks.push(achievement);
         
         // Award achievement rewards
@@ -62,7 +68,6 @@ export async function checkAchievements(userId) {
     }
     
     if (newUnlocks.length > 0) {
-      user.unlockedAchievements = unlockedAchievements;
       await user.save();
       
       console.log(`User ${userId} unlocked ${newUnlocks.length} new achievements:`, 

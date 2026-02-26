@@ -51,6 +51,12 @@ export async function getDashboardStats(req, res) {
         : 0
     };
     
+    // Get recent achievements (last 5 unlocked)
+    const recentAchievements = user.unlockedAchievements
+      .sort((a, b) => new Date(b.unlockedAt) - new Date(a.unlockedAt))
+      .slice(0, 5)
+      .map(ua => ua.achievementId);
+    
     const dashboardData = {
       user: {
         _id: user._id,
@@ -75,7 +81,7 @@ export async function getDashboardStats(req, res) {
       weekStats,
       achievements: {
         total: user.unlockedAchievements?.length || 0,
-        recent: [] // TODO: Add recent achievements
+        recent: recentAchievements
       }
     };
     

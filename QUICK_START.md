@@ -3,17 +3,16 @@
 ## 🚀 Get Started in 5 Minutes
 
 ### Prerequisites
-- Node.js 16+ installed
-- MongoDB running (local or cloud)
-- Git installed
+- Node.js 18+ installed
+- MongoDB (local or Atlas account)
+- Git
 
 ---
 
-## 📦 Installation
+## Step 1: Clone & Install
 
-### 1. Clone & Install Dependencies
 ```bash
-# Clone the repository
+# Clone repository
 git clone <your-repo-url>
 cd drivesutrago
 
@@ -28,23 +27,20 @@ npm install
 
 ---
 
-## ⚙️ Configuration
+## Step 2: Setup Environment Variables
 
-### 2. Backend Environment Setup
+### Backend (.env)
 Create `Backend/.env`:
 ```env
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/drivesutrago
-JWT_SECRET=your_super_secret_jwt_key_here
-OPENWEATHER_API_KEY=your_openweather_key
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_email_app_password
-
-# Optional (has fallback to free APIs)
-MAPPLS_API_KEY=your_mappls_key
+JWT_SECRET=your_super_secret_jwt_key_at_least_32_characters_long
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-gmail-app-password
+OPENWEATHER_API_KEY=your_openweather_api_key
 ```
 
-### 3. Frontend Environment Setup
+### Frontend (.env)
 Create `Frontend/.env`:
 ```env
 VITE_API_URL=http://localhost:5000/api
@@ -53,358 +49,335 @@ VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id
 
 ---
 
-## 🏃 Running the Application
+## Step 3: Get FREE API Keys (5 minutes)
 
-### 4. Start Backend Server
+### OpenWeatherMap (Weather Data)
+1. Go to https://openweathermap.org/api
+2. Sign up (FREE)
+3. Get API key from dashboard
+4. Add to `Backend/.env` as `OPENWEATHER_API_KEY`
+
+### Google OAuth (Optional - for Google Fit)
+1. Go to https://console.cloud.google.com
+2. Create new project
+3. Enable Fitness API
+4. Create OAuth credentials
+5. Add to `Frontend/.env` as `VITE_GOOGLE_CLIENT_ID`
+
+### Gmail SMTP (Email Notifications)
+1. Go to https://myaccount.google.com/apppasswords
+2. Generate app password
+3. Add to `Backend/.env` as `EMAIL_PASS`
+
+**See `API_KEYS_SETUP_GUIDE.md` for detailed instructions**
+
+---
+
+## Step 4: Initialize Database
+
+```bash
+cd Backend
+
+# Initialize achievements, challenges, rewards
+npm run init-data
+
+# Initialize partner merchants
+node scripts/initializePartners.js
+
+# Create admin account
+node scripts/createAdmin.js
+```
+
+**Default Admin Credentials:**
+- Email: `admin@drivesutrago.com`
+- Password: `Admin@123`
+
+---
+
+## Step 5: Start Development Servers
+
+### Terminal 1 - Backend
 ```bash
 cd Backend
 npm run dev
 ```
-Server will start on `http://localhost:5000`
+Backend runs on http://localhost:5000
 
-### 5. Start Frontend Development Server
+### Terminal 2 - Frontend
 ```bash
 cd Frontend
 npm run dev
 ```
-App will open on `http://localhost:5173`
+Frontend runs on http://localhost:5173
 
 ---
 
-## 🧪 Test the Features
+## Step 6: Test the Application
 
-### Test 1: Create a Trip
-1. Register/Login to the app
-2. Go to "New Trip" page
-3. Pin start and end locations on map
-4. Select transport mode (WALK, CYCLE, PUBLIC, CAR, BIKE)
-5. View route options with EcoScore estimates
+### User Flow
+1. Open http://localhost:5173
+2. Click "Register" → Create account
+3. Verify email with OTP
+4. Plan a trip → Select start/end locations
+5. Choose transport mode
+6. Start trip → Track in real-time
+7. Complete trip → View eco score
+8. Redeem rewards with carbon credits
 
-### Test 2: Track a Trip (Walk/Cycle)
-1. Create a WALK or CYCLE trip
-2. Click "Start Trip"
-3. Allow location and health permissions
-4. Watch real-time tracking:
-   - Distance updates
-   - Speed monitoring
-   - Health data collection
-5. Click "Stop Trip" to complete
-
-### Test 3: Public Transport Verification
-1. Create a PUBLIC transport trip
-2. Start and complete the trip
-3. In verification modal:
-   - Upload ticket image, OR
-   - Enter transaction details (ID, amount)
-4. View verification status
-
-### Test 4: Tree Planting
-1. Complete any trip with CO2 savings
-2. Trees are automatically planted
-3. View certificate in "Forest" page
-4. Check certificate number
-
-### Test 5: Rewards
-1. Earn carbon credits from trips
-2. Go to "Rewards" page
-3. Browse 30+ Indian brand rewards
-4. Redeem with carbon credits
-5. View coupon code
+### Admin Flow
+1. Open http://localhost:5173/admin/login
+2. Login with admin credentials
+3. View pending trip verifications
+4. Review and approve/reject trips
+5. Manage partner offers
 
 ---
 
-## 🗺️ Free APIs (No Setup Required)
+## 🎯 Key Features to Test
 
-These APIs work out of the box:
-- ✅ **Nominatim** - Geocoding (no key needed)
-- ✅ **OSRM** - Routing (no key needed)
-- ✅ **Overpass API** - Metro/bus data (no key needed)
+### 1. Personalized Recommendations
+- Update health profile in settings
+- Plan trip and see personalized suggestions
+- Check warnings based on weather/health
 
----
+### 2. Real-Time Tracking
+- Start a trip
+- Watch GPS tracking
+- Monitor speed and distance
+- See live updates
 
-## 🔑 Optional API Keys
+### 3. Fraud Detection
+- Complete a trip
+- System automatically validates:
+  - Speed anomalies
+  - Route deviation
+  - Time-distance ratio
+  - GPS accuracy
+  - Movement patterns
 
-### OpenWeatherMap (Recommended)
-1. Sign up at https://openweathermap.org/api
-2. Get free API key
-3. Add to `Backend/.env`
+### 4. OCR Ticket Verification
+- Upload ticket image (for public transport)
+- System extracts:
+  - Ticket number
+  - Date, time
+  - Fare amount
+  - Transport type
+- Auto-verification
 
-### Google OAuth (For Google Fit)
-1. Go to Google Cloud Console
-2. Create OAuth 2.0 credentials
-3. Add to `Frontend/.env`
+### 5. Carbon Calculation
+- View transparent CO2 calculations
+- See emission factors
+- Compare modes
+- Track savings
 
----
+### 6. Partner Rewards
+- Browse partner offers
+- Check eligibility
+- Redeem with carbon credits
+- Get unique coupon code
 
-## 📱 Mobile Testing
-
-### Test on Real Device:
-1. Find your local IP: `ipconfig` (Windows) or `ifconfig` (Mac/Linux)
-2. Update `Frontend/.env`:
-   ```env
-   VITE_API_URL=http://YOUR_IP:5000/api
-   ```
-3. Access from phone: `http://YOUR_IP:5173`
-
-### Enable Location Permissions:
-- **Android**: Settings → Apps → Browser → Permissions → Location
-- **iOS**: Settings → Safari → Location → Allow
-
----
-
-## 🎯 Feature Testing Checklist
-
-### Real-Time Tracking
-- [ ] GPS location updates every second
-- [ ] Speed displayed in km/h
-- [ ] Distance calculated accurately
-- [ ] Location sent to backend
-
-### Health API
-- [ ] Google Fit connects (Android/Web)
-- [ ] Step count retrieved
-- [ ] Heart rate data shown
-- [ ] Fitness bonus applied to EcoScore
-
-### Public Transport
-- [ ] Metro stations found in metro cities
-- [ ] Ticket upload works
-- [ ] Transaction verification succeeds
-- [ ] Fare estimation shown
-
-### Tree Planting
-- [ ] Trees planted after trip (1 per 22kg CO2)
-- [ ] Certificate generated with unique number
-- [ ] User's tree count updated
-- [ ] Certificate viewable
-
-### Rewards
-- [ ] 30+ rewards displayed
-- [ ] Eligibility checked (credits, level, score)
-- [ ] Redemption works
-- [ ] Coupon code generated
+### 7. Gamification
+- Earn XP and level up
+- Unlock achievements
+- Complete challenges
+- Climb leaderboards
 
 ---
 
-## 🐛 Common Issues & Fixes
+## 📁 Project Structure
 
-### Issue: "Cannot connect to MongoDB"
-**Fix**: 
-```bash
-# Start MongoDB locally
-mongod --dbpath /path/to/data
-
-# Or use MongoDB Atlas (cloud)
-# Update MONGODB_URI in .env
 ```
-
-### Issue: "Location permission denied"
-**Fix**: 
-- Chrome: Click lock icon → Site settings → Location → Allow
-- Firefox: Click shield icon → Permissions → Location → Allow
-
-### Issue: "Health API not connecting"
-**Fix**:
-- Ensure Google OAuth credentials are correct
-- Check browser console for errors
-- Try incognito mode (clears cache)
-
-### Issue: "Metro stations not found"
-**Fix**:
-- Ensure you're in one of 12 supported cities
-- Check internet connection (Overpass API needs internet)
-- Try increasing search radius
-
-### Issue: "Routes not loading"
-**Fix**:
-- OSRM might be down, wait a few minutes
-- Check browser console for errors
-- Fallback to straight-line calculation will work
-
----
-
-## 📊 Database Seeding
-
-### Initialize Sample Data:
-```bash
-cd Backend
-node scripts/initializeData.js
-```
-
-This creates:
-- Sample achievements
-- Sample challenges
-- 30+ rewards (Indian brands)
-
----
-
-## 🔧 Development Tips
-
-### Hot Reload
-Both frontend and backend support hot reload:
-- Frontend: Vite auto-reloads on file changes
-- Backend: nodemon restarts on file changes
-
-### Debug Mode
-Enable detailed logging:
-```javascript
-// Backend: Add to any controller
-console.log('Debug:', data);
-
-// Frontend: Check browser console
-console.log('State:', state);
-```
-
-### API Testing
-Use Postman or Thunder Client:
-```
-POST http://localhost:5000/api/trips/route-options
-Body: {
-  "startLocation": { "lat": 28.6139, "lng": 77.2090 },
-  "endLocation": { "lat": 28.7041, "lng": 77.1025 }
-}
+drivesutrago/
+├── Backend/
+│   ├── controllers/        # Business logic
+│   ├── models/            # Database schemas
+│   ├── routes/            # API endpoints
+│   ├── middleware/        # Auth, validation
+│   ├── utils/             # Helper functions
+│   │   ├── carbonEmissionCalculator.js
+│   │   ├── fraudDetectionService.js
+│   │   ├── personalizedRecommendationEngine.js
+│   │   ├── ocrService.js
+│   │   └── ecoScoreCalculator.js
+│   ├── scripts/           # Initialization scripts
+│   └── server.js          # Entry point
+│
+├── Frontend/
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── pages/         # Page components
+│   │   ├── services/      # API services
+│   │   ├── context/       # React context
+│   │   └── App.jsx        # Main app
+│   └── package.json
+│
+├── API_KEYS_SETUP_GUIDE.md
+├── DEPLOYMENT_GUIDE.md
+├── IMPROVEMENTS_IMPLEMENTED.md
+└── QUICK_START.md (this file)
 ```
 
 ---
 
-## 📚 Code Structure
+## 🔧 Common Commands
 
 ### Backend
-```
-Backend/
-├── controllers/        # Business logic
-│   ├── tripController.js
-│   ├── publicTransportController.js
-│   └── treePlantingController.js
-├── models/            # Database schemas
-│   ├── Trip.js
-│   ├── PublicTransportVerification.js
-│   └── TreePlanting.js
-├── routes/            # API endpoints
-├── utils/             # Helper functions
-└── server.js          # Entry point
+```bash
+npm run dev          # Start development server
+npm start            # Start production server
+npm run init-data    # Initialize database
+node scripts/createAdmin.js  # Create admin
 ```
 
 ### Frontend
-```
-Frontend/
-├── src/
-│   ├── components/    # React components
-│   │   └── trips/
-│   │       └── EnhancedTripTracker.jsx
-│   ├── services/      # API services
-│   │   ├── locationTrackingService.js
-│   │   ├── healthApiService.js
-│   │   ├── publicTransportService.js
-│   │   └── treePlantingService.js
-│   ├── pages/         # Page components
-│   └── App.jsx        # Main app
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
 ```
 
 ---
 
-## 🚀 Deployment
+## 🐛 Troubleshooting
 
-### Backend (Render/Railway/Heroku)
-1. Push code to GitHub
-2. Connect repository
-3. Add environment variables
-4. Deploy
+### Backend won't start
+```bash
+# Check MongoDB is running
+mongod --version
 
-### Frontend (Vercel/Netlify)
-1. Push code to GitHub
-2. Connect repository
-3. Add environment variables
-4. Deploy
+# Check environment variables
+cat Backend/.env
 
-### Environment Variables for Production:
-```env
-# Backend
-MONGODB_URI=mongodb+srv://...
-NODE_ENV=production
+# Check port is available
+lsof -i :5000
+```
 
-# Frontend
-VITE_API_URL=https://your-backend.com/api
+### Frontend can't connect to backend
+```bash
+# Verify backend is running
+curl http://localhost:5000/api/health
+
+# Check VITE_API_URL in Frontend/.env
+cat Frontend/.env
+```
+
+### Database connection error
+```bash
+# Start MongoDB locally
+mongod
+
+# Or use MongoDB Atlas connection string
+# Update MONGODB_URI in Backend/.env
+```
+
+### OCR not working
+```bash
+# Install tesseract.js
+cd Backend
+npm install tesseract.js
+
+# Restart backend
+npm run dev
 ```
 
 ---
 
-## 📖 Documentation
+## 📚 Documentation
 
-- **Full Guide**: See `IMPLEMENTATION_GUIDE.md`
-- **Features**: See `FEATURES_SUMMARY.md`
-- **API Docs**: See inline comments in controllers
+- **API Keys Setup**: `API_KEYS_SETUP_GUIDE.md`
+- **Deployment**: `DEPLOYMENT_GUIDE.md`
+- **Features**: `FEATURES_SUMMARY.md`
+- **Improvements**: `IMPROVEMENTS_IMPLEMENTED.md`
+- **Implementation**: `IMPLEMENTATION_GUIDE.md`
 
 ---
 
 ## 🎓 Learning Resources
 
-### Key Technologies:
-- **React**: https://react.dev
-- **Node.js**: https://nodejs.org
-- **MongoDB**: https://mongodb.com
-- **Leaflet**: https://leafletjs.com
-- **OSRM**: http://project-osrm.org
+### Technologies Used
+- **Backend**: Node.js, Express, MongoDB, Mongoose
+- **Frontend**: React, Vite, TailwindCSS
+- **APIs**: OpenWeatherMap, Google OAuth, Tesseract.js
+- **Maps**: Leaflet, OpenStreetMap, OSRM
 
-### APIs Used:
-- **Nominatim**: https://nominatim.org
-- **Overpass**: https://overpass-api.de
-- **OpenWeatherMap**: https://openweathermap.org
-
----
-
-## 💡 Pro Tips
-
-1. **Use Chrome DevTools**: 
-   - Network tab for API calls
-   - Console for errors
-   - Application tab for localStorage
-
-2. **Test on Real Device**:
-   - GPS is more accurate
-   - Health APIs work better
-   - Real-world testing
-
-3. **Monitor Performance**:
-   - Check location update frequency
-   - Optimize API calls
-   - Cache static data
-
-4. **Security**:
-   - Never commit .env files
-   - Use environment variables
-   - Validate all inputs
+### Tutorials
+- MongoDB: https://www.mongodb.com/docs/manual/tutorial/
+- Express: https://expressjs.com/en/starter/installing.html
+- React: https://react.dev/learn
+- Vite: https://vitejs.dev/guide/
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open Pull Request
+### Development Workflow
+1. Create feature branch
+2. Make changes
+3. Test thoroughly
+4. Commit with clear message
+5. Push and create PR
+
+### Code Style
+- Use ESLint for linting
+- Follow existing patterns
+- Add comments for complex logic
+- Write meaningful commit messages
 
 ---
 
-## 📞 Need Help?
+## 📞 Support
 
-- **Documentation**: Check `IMPLEMENTATION_GUIDE.md`
-- **Issues**: Open GitHub issue
-- **Email**: support@drivesutrago.com
+### Issues
+- Check existing issues on GitHub
+- Create new issue with:
+  - Clear description
+  - Steps to reproduce
+  - Expected vs actual behavior
+  - Screenshots if applicable
+
+### Questions
+- Check documentation first
+- Search Stack Overflow
+- Ask in community forums
 
 ---
 
-## ✅ You're Ready!
+## ✅ Next Steps
 
-All features are implemented and ready to use. Start the servers and begin testing!
+After setup, you should:
 
-```bash
-# Terminal 1: Backend
-cd Backend && npm run dev
+1. **Customize**
+   - Update branding
+   - Add your logo
+   - Customize colors
+   - Add more partner merchants
 
-# Terminal 2: Frontend
-cd Frontend && npm run dev
-```
+2. **Test**
+   - Test all user flows
+   - Test admin features
+   - Test on mobile devices
+   - Test with real GPS data
 
-Visit `http://localhost:5173` and start your eco-friendly journey! 🌍🚀
+3. **Deploy**
+   - Follow `DEPLOYMENT_GUIDE.md`
+   - Set up monitoring
+   - Configure backups
+   - Enable SSL
+
+4. **Launch**
+   - Onboard users
+   - Partner with merchants
+   - Gather feedback
+   - Iterate
+
+---
+
+## 🎉 You're Ready!
+
+Your DriveSutraGo platform is now running locally!
+
+**User App**: http://localhost:5173
+**Admin Panel**: http://localhost:5173/admin/login
+**API**: http://localhost:5000/api
+
+Happy coding! 🚀🌱

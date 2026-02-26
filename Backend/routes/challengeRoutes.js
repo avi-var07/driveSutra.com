@@ -1,6 +1,6 @@
 import express from 'express';
 import challengeController from '../controllers/challengeController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, protectAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -11,7 +11,7 @@ router.get('/', challengeController.getActiveChallenges);
 router.post('/:challengeId/join', protect, challengeController.joinChallenge);
 router.get('/my-progress', protect, challengeController.getUserChallengeProgress);
 
-// Admin routes (TODO: Add admin middleware)
-router.post('/create', challengeController.createChallenge);
+// Admin routes (protected with admin middleware)
+router.post('/create', protectAdmin, challengeController.createChallenge);
 
 export default router;

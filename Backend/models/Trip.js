@@ -31,6 +31,11 @@ const tripSchema = new mongoose.Schema({
     enum: ["planned", "in_progress", "completed", "cancelled"], 
     default: "planned" 
   },
+  verificationStatus: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending"
+  },
   startTime: { type: Date },
   endTime: { type: Date },
   

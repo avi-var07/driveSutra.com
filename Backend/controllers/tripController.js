@@ -350,38 +350,42 @@ export async function completeTrip(req, res) {
 			fitnessBonus: Math.round(fitnessBonus)
 		};
 		
-		// Calculate rewards (with fitness bonus)
+		// Calculate rewards (but DON'T award yet - wait for admin verification)
 		const rewards = calculateTripRewards(finalEcoScore, trip.distanceKm, trip.mode, fitnessBonus);
 		trip.xpEarned = rewards.xp;
 		trip.carbonCreditsEarned = rewards.carbonCredits;
 		trip.co2Saved = rewards.co2Saved;
 		trip.treesGrown = rewards.trees;
 		
+		// Mark trip as pending verification (don't update user stats yet)
+		trip.verificationStatus = 'pending';
+		
 		await trip.save();
 
-		// Update user stats
-		await updateUserStats(user, trip, rewards);
+		// DON'T update user stats yet - wait for admin verification
+		// await updateUserStats(user, trip, rewards); // COMMENTED OUT
 
-		// Check for new achievements
-		const newAchievements = await checkAchievements(user._id);
+		// DON'T check achievements yet
+		// const newAchievements = await checkAchievements(user._id); // COMMENTED OUT
 
-		// Get updated user data for response
+		// Get user data for response (unchanged stats)
 		const updatedUser = await User.findById(user._id).select('-password');
 
-		// Send trip completion email (non-blocking)
-		try { sendTripCompletionEmail(updatedUser, trip, { xp: trip.xpEarned, carbonCredits: trip.carbonCreditsEarned, co2Saved: trip.co2Saved }).catch(()=>{}); } catch(e) {}
+		// DON'T send completion email yet - send after admin approval
+		// try { sendTripCompletionEmail(updatedUser, trip, { xp: trip.xpEarned, carbonCredits: trip.carbonCreditsEarned, co2Saved: trip.co2Saved }).catch(()=>{}); } catch(e) {}
 
 		return res.json({ 
 			success: true, 
-			message: 'Trip completed successfully!',
+			message: 'Trip completed! Pending admin verification for rewards.',
 			trip,
-			rewards,
+			pendingRewards: rewards,
 			ecoScore: finalEcoScore,
 			components: {
 				...ecoResult.components,
 				fitnessBonus: Math.round(fitnessBonus)
 			},
-			newAchievements,
+			verificationStatus: 'pending',
+			note: 'Your rewards will be credited after admin verification',
 			updatedUser: {
 				xp: updatedUser.xp,
 				level: updatedUser.level,
