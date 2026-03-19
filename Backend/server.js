@@ -25,40 +25,47 @@ dotenv.config();
 
 const app = express();
 
-/* ---------- Middlewares ---------- */
-// 1. CORS - MUST be first
-const corsOptions = {
-  origin: [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://drivesutrago.vercel.app",
-    "https://drivesutra.vercel.app",
-    "https://drivesutrago-api.onrender.com" // Allow self for testing
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+/* ---------- CORS (FIXED PROPERLY) ---------- */
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://drivesutrago.vercel.app",
+  "https://drivesutra.vercel.app"
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    console.log("CORS Origin:", origin);
+
+    // Allow requests with no origin (Postman, mobile apps)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: "*"
+}));
 
-app.use(cors(corsOptions));
-// Force preflight handling for everything
-app.options('*', cors(corsOptions));
+// Handle preflight requests
+app.options("*", cors());
 
-// 2. Debug Logger
+/* ---------- DEBUG LOGGER ---------- */
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  console.log('Origin:', req.headers.origin);
+  console.log("Origin:", req.headers.origin);
   next();
 });
 
-// 3. Body Parsers
+/* ---------- BODY PARSERS ---------- */
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-/* ---------- Routes ---------- */
-
+/* ---------- ROUTES ---------- */
 app.use("/api/auth", authRoutes);
 app.use("/api/trips", tripRoutes);
 app.use("/api/users", userRoutes);
@@ -72,7 +79,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/partners", partnerRoutes);
 app.use("/api/donations", donationRoutes);
 
-/* ---------- Health ---------- */
+/* ---------- HEALTH ---------- */
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
@@ -85,9 +92,17 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-/* ---------- Errors ---------- */
+/* ---------- ERROR HANDLER ---------- */
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("Error:", err.message);
+
+  if (err.message === "Not allowed by CORS") {
+    return res.status(403).json({
+      success: false,
+      message: "CORS blocked request"
+    });
+  }
+
   res.status(500).json({
     success: false,
     message: "Something went wrong!"
@@ -96,7 +111,10 @@ app.use((err, req, res, next) => {
 
 /* ---------- 404 ---------- */
 app.use("*", (req, res) => {
-  res.status(404).json({ success: false, message: "Route not found" });
+  res.status(404).json({
+    success: false,
+    message: "Route not found"
+  });
 });
 
 /* ---------- START SERVER ---------- */
@@ -109,9 +127,11 @@ const startServer = async () => {
     await initializeRewards();
 
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, '0.0.0.0', () => {
+
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 EcoDrive Backend running on port ${PORT}`);
     });
+
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);
