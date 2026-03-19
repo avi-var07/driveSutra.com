@@ -55,7 +55,7 @@ const AuthPage = () => {
                 transition={{ type: "spring", stiffness: 100 }}
                 className="text-3xl sm:text-4xl lg:text-5xl font-black bg-gradient-to-r from-emerald-400 to-sky-400 bg-clip-text text-transparent drop-shadow-sm"
               >
-                DriveSutraGo
+                driveSutraGo
               </motion.h1>
               <motion.p 
                 initial={{ opacity: 0 }}

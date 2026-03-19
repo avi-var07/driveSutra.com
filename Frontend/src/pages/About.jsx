@@ -14,7 +14,7 @@ export default function About() {
             transition={{ duration: 0.8 }}
           >
             <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-              About driveSutra
+              About driveSutraGo
             </h1>
             <p className="text-xl text-slate-300 leading-relaxed mb-8">
               We're on a mission to transform daily commuting into an engaging, 
@@ -41,8 +41,9 @@ export default function About() {
                 we can create a global community of environmental champions.
               </p>
               <p className="text-slate-300 text-lg leading-relaxed">
-                driveSutra turns your daily commute into a meaningful journey toward a greener future, 
-                where every trip counts and every choice matters.
+                driveSutraGo turns your daily commute into an immersive, gamified experience. 
+                We calculate your carbon savings, reward you with XP, let you compete on global leaderboards, 
+                and translate your virtual milestones into real-world tree planting. Every green trip counts.
               </p>
             </motion.div>
             <motion.div
@@ -111,8 +112,8 @@ export default function About() {
             />
             <ValueCard
               icon={FaHeart}
-              title="Accessibility"
-              description="Sustainable transportation should be accessible to everyone, regardless of their background or circumstances."
+              title="Gamified Rewards"
+              description="Earning XP, unlocking badges, and planting real trees makes saving the planet an actively fun and rewarding adventure."
             />
             <ValueCard
               icon={FaRocket}
@@ -138,7 +139,7 @@ export default function About() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl font-bold mb-4 text-emerald-400">How driveSutra Works</h2>
+            <h2 className="text-3xl font-bold mb-4 text-emerald-400">How driveSutraGo Works</h2>
             <p className="text-slate-300 text-lg">Simple steps to start your eco-friendly journey</p>
           </motion.div>
 
@@ -176,7 +177,7 @@ export default function About() {
           >
             <h2 className="text-3xl font-bold mb-6 text-emerald-400">Built by Passionate Developers</h2>
             <p className="text-slate-300 text-lg leading-relaxed mb-8">
-              driveSutra is crafted by a team of developers, designers, and environmental enthusiasts 
+              driveSutraGo is crafted by a team of developers, designers, and environmental enthusiasts 
               who believe technology can be a force for positive change. We're committed to creating 
               tools that make sustainable living not just possible, but enjoyable.
             </p>
@@ -184,7 +185,7 @@ export default function About() {
               <h3 className="text-xl font-semibold mb-4">Join Our Mission</h3>
               <p className="text-slate-400 mb-6">
                 Whether you're a developer, designer, environmental scientist, or just someone who cares 
-                about our planet, there are many ways to contribute to the driveSutra community.
+                about our planet, there are many ways to contribute to the driveSutraGo community.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">

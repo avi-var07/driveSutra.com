@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaCoins, FaTrophy, FaGift, FaCrown, FaFire, FaLeaf } from 'react-icons/fa';
+import { FaCoins, FaTrophy, FaGift, FaCrown, FaFire, FaLeaf, FaHeart } from 'react-icons/fa';
 import { MdRedeem, MdCheckCircle, MdError } from 'react-icons/md';
 import { getAvailableRewards, redeemReward, getUserRewards, getLeaderboard } from '../services/rewardService';
+import { donateForTrees, getDonationHistory, getTreePlantingWall } from '../services/donationService';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -35,6 +36,13 @@ export default function Rewards() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [redeemingId, setRedeemingId] = useState(null);
+  
+  // Donation state
+  const [donationAmount, setDonationAmount] = useState('');
+  const [donationMessage, setDonationMessage] = useState('');
+  const [donationHistory, setDonationHistory] = useState([]);
+  const [treePlantingWall, setTreePlantingWall] = useState([]);
+  const [isDonating, setIsDonating] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -71,6 +79,15 @@ export default function Rewards() {
         if (leaderboardResponse.success) {
           setLeaderboard(leaderboardResponse.leaderboard);
         }
+      } else if (activeTab === 'donations') {
+        const donationHistoryResponse = await getDonationHistory();
+        const treePlantingWallResponse = await getTreePlantingWall();
+        if (donationHistoryResponse.success) {
+          setDonationHistory(donationHistoryResponse.donations || []);
+        }
+        if (treePlantingWallResponse.success) {
+          setTreePlantingWall(treePlantingWallResponse.donations || []);
+        }
       }
     } catch (err) {
       setError('Failed to load data');
@@ -101,6 +118,41 @@ export default function Rewards() {
       setError(err.response?.data?.message || 'Failed to redeem reward');
     } finally {
       setRedeemingId(null);
+    }
+  };
+
+  const handleDonateForTrees = async () => {
+    setError('');
+    if (!donationAmount || donationAmount <= 0) {
+      setError('Please enter a valid number of credits to donate');
+      return;
+    }
+
+    if (donationAmount > (user?.carbonCredits || 0)) {
+      setError('Insufficient carbon credits');
+      return;
+    }
+
+    try {
+      setIsDonating(true);
+      const response = await donateForTrees(parseInt(donationAmount), donationMessage);
+      if (response.success) {
+        setSuccess(`🌳 Donated ${donationAmount} credits! ${parseInt(donationAmount)} trees will be planted in your name!`);
+        setDonationAmount('');
+        setDonationMessage('');
+        // Refresh user data to update credits
+        if (refreshUser) {
+          await refreshUser();
+        }
+        // Refresh donations to update history
+        fetchData();
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccess(''), 5000);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to donate');
+    } finally {
+      setIsDonating(false);
     }
   };
 
@@ -182,6 +234,7 @@ export default function Rewards() {
             {[
               { key: 'rewards', label: 'Available Rewards', icon: FaGift },
               { key: 'my-rewards', label: 'My Rewards', icon: MdRedeem },
+              { key: 'donations', label: 'Donate for Trees', icon: FaHeart },
               { key: 'leaderboard', label: 'Leaderboard', icon: FaTrophy }
             ].map(({ key, label, icon: Icon }) => (
               <button
@@ -447,6 +500,150 @@ export default function Rewards() {
                       </motion.div>
                     ))
                   )}
+                </div>
+              )}
+
+              {/* Donations Tab */}
+              {activeTab === 'donations' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Donation Form */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="lg:col-span-2 bg-slate-800/30 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8"
+                  >
+                    <div className="mb-6">
+                      <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
+                        <FaHeart className="text-red-500" /> Donate for Trees
+                      </h2>
+                      <p className="text-slate-400">
+                        Plant trees by donating your carbon credits. Each credit equals one tree planted in your name!
+                      </p>
+                    </div>
+
+                    {/* Current Credits Display */}
+                    <div className="mb-6 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-500/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-300 font-semibold">Available Credits:</span>
+                        <div className="flex items-center gap-2 text-2xl font-bold text-yellow-400">
+                          <FaCoins /> {user?.carbonCredits || 0}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Donation Form */}
+                    <div className="space-y-4">
+                      {/* Amount Input */}
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-300 mb-2">
+                          Number of Trees to Plant
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max={user?.carbonCredits || 0}
+                          value={donationAmount}
+                          onChange={(e) => setDonationAmount(e.target.value)}
+                          placeholder="Enter number of credits"
+                          className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                        />
+                        <div className="mt-2 text-sm text-slate-400">
+                          {donationAmount && (
+                            <>
+                              <span className="text-emerald-400 font-semibold">{donationAmount} trees</span> will be planted
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Message Input */}
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-300 mb-2">
+                          Message (Optional)
+                        </label>
+                        <textarea
+                          value={donationMessage}
+                          onChange={(e) => setDonationMessage(e.target.value)}
+                          placeholder="Leave a message with your donation..."
+                          rows="4"
+                          className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+                        />
+                      </div>
+
+                      {/* Donate Button */}
+                      <button
+                        onClick={handleDonateForTrees}
+                        disabled={isDonating || !donationAmount || donationAmount <= 0}
+                        className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 text-lg ${
+                          isDonating || !donationAmount || donationAmount <= 0
+                            ? 'bg-slate-700/50 text-slate-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-lg hover:shadow-emerald-500/50'
+                        }`}
+                      >
+                        {isDonating ? (
+                          <>
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Planting Trees...
+                          </>
+                        ) : (
+                          <>
+                            <FaHeart /> Plant {donationAmount || '?'} Trees
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </motion.div>
+
+                  {/* Donation Stats & History */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="space-y-6"
+                  >
+                    {/* Eco Impact Summary */}
+                    <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-xl rounded-2xl border border-emerald-500/30 p-6">
+                      <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <FaLeaf className="text-emerald-400" /> Your Impact
+                      </h3>
+                      <div className="space-y-3">
+                        <div>
+                          <div className="text-sm text-slate-400 mb-1">Trees Planted</div>
+                          <div className="text-3xl font-bold text-emerald-400">{user?.treesGrown || 0}</div>
+                        </div>
+                        <div className="h-px bg-slate-600/30"></div>
+                        <div>
+                          <div className="text-sm text-slate-400 mb-1">CO₂ Saved</div>
+                          <div className="text-2xl font-bold text-blue-400">{(user?.co2Saved || 0).toFixed(1)} kg</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recent Donations */}
+                    <div className="bg-slate-800/30 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6">
+                      <h3 className="text-lg font-bold text-white mb-4">Recent Donations</h3>
+                      {donationHistory.length === 0 ? (
+                        <div className="text-center py-6">
+                          <div className="text-3xl mb-2">🌱</div>
+                          <p className="text-slate-400 text-sm">No donations yet. Start planting!</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {donationHistory.slice(0, 5).map((donation, index) => (
+                            <div key={index} className="flex items-center justify-between text-sm p-2 bg-slate-700/20 rounded-lg">
+                              <div>
+                                <div className="text-white font-semibold">{donation.creditsSpent} trees</div>
+                                <div className="text-xs text-slate-400">
+                                  {new Date(donation.createdAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                              <FaLeaf className="text-emerald-400" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
                 </div>
               )}
 

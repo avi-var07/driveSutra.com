@@ -4,7 +4,7 @@ import OtpToken from "../models/OtpToken.js";
 import otpGenerator from "otp-generator";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/sendEmail.js";
-import { sendWelcomeEmail } from "../utils/emailService.js";
+import { sendWelcomeEmail, sendNewLoginEmail } from "../services/emailService.js";
 import { OAuth2Client } from 'google-auth-library';
 
 // Helper function to extract device info from request
@@ -44,10 +44,13 @@ function getDevice(userAgent) {
 
 // Send OTP
 export const sendOtp = async (req, res) => {
+  console.log("🔵 [ROUTE HIT] /send-otp endpoint called");  // DEBUG LOG
+  console.log("📨 Email from request:", req.body.email);    // DEBUG LOG
   try {
     const { email } = req.body;
-    
+
     if (!email) {
+      console.error("❌ Email not provided in request");  // DEBUG LOG
       return res.status(400).json({ success: false, message: "Email is required" });
     }
     // For registration flow: if a user already exists with this email, instruct to login
@@ -61,11 +64,12 @@ export const sendOtp = async (req, res) => {
 
     // Delete existing OTP for this email
     await OtpToken.findOneAndDelete({ email });
-    
+
     // Save new OTP
     await OtpToken.create({ email, code: otp, expiresAt });
 
     // Send email (formatted)
+    console.log("📤 Attempting to send email to:", email);  // DEBUG LOG
     await sendEmail(email, "Your driveSutraGo verification code", `
       <div style="font-family: Arial, Helvetica, sans-serif; color: #111; max-width:600px;">
         <div style="padding:20px;background:#fff;border-radius:8px;">
@@ -75,10 +79,11 @@ export const sendOtp = async (req, res) => {
         </div>
       </div>
     `);
+    console.log("✅ Email sent successfully to:", email);  // DEBUG LOG
 
     return res.status(200).json({ success: true, message: "OTP sent successfully" });
   } catch (error) {
-    console.error("Send OTP Error:", error);
+    console.error("❌ Send OTP Error:", error.message);  // DEBUG LOG
     return res.status(500).json({ success: false, message: "Failed to send OTP" });
   }
 };
@@ -280,16 +285,16 @@ export const register = async (req, res) => {
     const session = await Session.createSession(user._id, deviceInfo, {}, 'email');
 
     // Generate JWT token with session info
-    const token = jwt.sign({ 
-      id: user._id, 
-      email: user.email, 
-      sessionId: session._id 
+    const token = jwt.sign({
+      id: user._id,
+      email: user.email,
+      sessionId: session._id
     }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
     // Send welcome email asynchronously (do not block response)
-    try { sendWelcomeEmail(user).catch(()=>{}); } catch(e) {}
+    try { sendWelcomeEmail(user).catch(() => { }); } catch (e) { }
 
     // Return success with user data (exclude password)
     return res.status(201).json({
@@ -329,9 +334,9 @@ export const login = async (req, res) => {
     // Compare passwords using the method we added
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({ 
-        success: false, 
-        message: "Incorrect email or password. Try Again or Reset using Forgot Password" 
+      return res.status(401).json({
+        success: false,
+        message: "Incorrect email or password. Try Again or Reset using Forgot Password"
       });
     }
 
@@ -340,13 +345,16 @@ export const login = async (req, res) => {
     const session = await Session.createSession(user._id, deviceInfo, {}, 'email');
 
     // Generate JWT token with session info
-    const token = jwt.sign({ 
-      id: user._id, 
-      email: user.email, 
-      sessionId: session._id 
+    const token = jwt.sign({
+      id: user._id,
+      email: user.email,
+      sessionId: session._id
     }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
+
+    // Send login notification email asynchronously
+    try { sendNewLoginEmail(user, deviceInfo).catch(() => { }); } catch (e) { }
 
     return res.status(200).json({
       success: true,
@@ -370,52 +378,62 @@ export const login = async (req, res) => {
 
 // Google Sign-in
 export const googleSignIn = async (req, res) => {
+  console.log("🔵 [ROUTE HIT] /auth/google-signin endpoint called");  // DEBUG LOG
+  console.log("📨 ID Token length:", req.body.idToken?.length);      // DEBUG LOG
+  console.log("👤 Profile email:", req.body.profile?.email);         // DEBUG LOG
   try {
     const { idToken, profile } = req.body;
 
     if (!idToken || !profile) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Missing Google authentication data" 
+      console.error("❌ Missing Google auth data");  // DEBUG LOG
+      return res.status(400).json({
+        success: false,
+        message: "Missing Google authentication data"
       });
     }
 
     // Verify Google ID token
+    console.log("🔐 Verifying Google ID token...");  // DEBUG LOG
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-    
+
     let payload;
     try {
       const ticket = await client.verifyIdToken({
         idToken: idToken,
         audience: process.env.GOOGLE_CLIENT_ID,
       });
-      
+
       payload = ticket.getPayload();
-      
+      console.log("✅ Token verified. Email:", payload?.email);  // DEBUG LOG
+
       if (!payload || payload.email !== profile.email) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Invalid Google token" 
+        console.error("❌ Email mismatch:", payload?.email, "vs", profile.email);  // DEBUG LOG
+        return res.status(400).json({
+          success: false,
+          message: "Invalid Google token"
         });
       }
     } catch (verifyError) {
-      console.error("Google token verification failed:", verifyError.message);
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid Google token" 
+      console.error("❌ Google token verification failed:", verifyError.message);  // DEBUG LOG
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Google token"
       });
     }
 
     // Check if user exists
+    console.log("🔍 Checking if user exists...");  // DEBUG LOG
     let user = await User.findOne({ email: profile.email });
 
     if (user) {
+      console.log("✅ User already exists:", user.email);  // DEBUG LOG
       // Update user profile with Google data if needed
       if (!user.avatar && profile.avatar) {
         user.avatar = profile.avatar;
         await user.save();
       }
     } else {
+      console.log("➕ Creating new user:", profile.email);  // DEBUG LOG
       // Create new user
       user = await User.create({
         firstName: profile.firstName || profile.email.split('@')[0],
@@ -462,9 +480,9 @@ export const googleSignIn = async (req, res) => {
     });
   } catch (error) {
     console.error("Google Sign-in Error:", error);
-    return res.status(500).json({ 
-      success: false, 
-      message: "Google sign-in failed: " + error.message 
+    return res.status(500).json({
+      success: false,
+      message: "Google sign-in failed: " + error.message
     });
   }
 };
@@ -473,14 +491,14 @@ export const googleSignIn = async (req, res) => {
 export const logout = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
-    
+
     if (!token) {
       return res.status(400).json({ success: false, message: "No token provided" });
     }
 
     // Decode token to get session ID
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     if (decoded.sessionId) {
       // Find and end the session
       const session = await Session.findById(decoded.sessionId);
@@ -502,12 +520,12 @@ export const logout = async (req, res) => {
 // Get user sessions
 export const getUserSessions = async (req, res) => {
   try {
-    const sessions = await Session.find({ 
-      user: req.user._id 
+    const sessions = await Session.find({
+      user: req.user._id
     })
-    .sort({ loginTime: -1 })
-    .limit(10)
-    .select('-sessionToken');
+      .sort({ loginTime: -1 })
+      .limit(10)
+      .select('-sessionToken');
 
     return res.status(200).json({
       success: true,

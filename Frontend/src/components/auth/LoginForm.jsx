@@ -24,19 +24,19 @@ const LoginForm = ({ switchToRegister }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('Form submitted, preventing default behavior');
+    console.log('🔵 Login form submitted');  // DEBUG LOG
     setError('');
     setLoading(true);
 
     if (!formData.email || !formData.password) {
-      console.log('Missing fields');
+      console.log('❌ Missing fields');  // DEBUG LOG
       setError('Please fill in all fields');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('Attempting login with:', formData.email);
+      console.log('📨 Attempting login with:', formData.email);  // DEBUG LOG
       const result = await login(formData.email, formData.password);
       console.log('Login result:', result);
       
@@ -57,38 +57,50 @@ const LoginForm = ({ switchToRegister }) => {
   };
 
   const handleGoogleLogin = async () => {
+    console.log('🔵 Google login button clicked');  // DEBUG LOG
     setError('');
     setLoading(true);
     
     try {
       // Step 1: Sign in with Google
+      console.log('1️⃣ Starting Google signIn()...');  // DEBUG LOG
       const googleResult = await googleAuth.signIn();
+      console.log('2️⃣ Google result:', googleResult?.success ? '✅ Success' : '❌ Failed');  // DEBUG LOG
       
       if (!googleResult.success) {
+        console.error('❌ Google signin failed:', googleResult.error);  // DEBUG LOG
         setError(googleResult.error || 'Google sign-in failed');
         setLoading(false);
         return;
       }
 
       // Step 2: Send to backend
+      console.log('3️⃣ Sending idToken to backend...');  // DEBUG LOG
       const response = await api.post('/auth/google-signin', {
         idToken: googleResult.user.idToken,
         profile: googleResult.user
       });
+      console.log('4️⃣ Backend response:', response.data?.success ? '✅ Success' : '❌ Failed');  // DEBUG LOG
 
       if (response.data.success) {
+        console.log('✅ Authentication successful, storing credentials');  // DEBUG LOG
         // Store token and user data
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
+        console.log('✅ Token and user stored in localStorage');  // DEBUG LOG
+        console.log('🔄 Reloading page to initialize auth context...');  // DEBUG LOG
         
-        // Navigate to dashboard
-        navigate('/dashboard');
-        window.location.reload(); // Refresh to update auth context
+        // Force page reload to update AuthContext with new token/user
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 500);
       } else {
+        console.error('❌ Backend rejected login:', response.data.message);  // DEBUG LOG
         setError(response.data.message || 'Authentication failed');
       }
 
     } catch (error) {
+      console.error('❌ Google login error:', error);  // DEBUG LOG
       if (error.response) {
         setError(error.response.data.message || 'Server error occurred');
       } else if (error.message) {

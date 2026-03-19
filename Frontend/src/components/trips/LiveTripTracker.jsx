@@ -3,8 +3,10 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, CircleMarker 
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaPlay, FaStop, FaPause, FaMapMarkerAlt, FaClock, FaRoute, FaHeartbeat, FaFire } from 'react-icons/fa';
 import { MdSpeed, MdMyLocation, MdFitnessCenter } from 'react-icons/md';
-import { startTrip, completeTrip } from '../../services/tripService';
-import googleFitService from '../../services/googleFitService';
+import { startTrip, completeTrip, pauseTrip, resumeTrip } from '../../services/tripService';
+import webSensorService from '../../services/webSensorService';
+import SelfieVerification from './SelfieVerification';
+import { useTripContext } from '../../context/TripContext';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -87,10 +89,15 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
   const [loading, setLoading] = useState(false);
   const [followUser, setFollowUser] = useState(true);
   const [fitnessData, setFitnessData] = useState(null);
-  const [googleFitConnected, setGoogleFitConnected] = useState(false);
+  const [stepTrackerConnected, setStepTrackerConnected] = useState(false);
   const [showFitnessStats, setShowFitnessStats] = useState(false);
   const [tripStarted, setTripStarted] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
+
+  // Lag detection & Selfie Verification
+  const [lagCount, setLagCount] = useState(0);
+  const [showSelfieModal, setShowSelfieModal] = useState(false);
+  const [lagEvents, setLagEvents] = useState([]);
 
   const watchIdRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -98,7 +105,14 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
   const speedsRef = useRef([]);
   const arrivalTriggeredRef = useRef(false);
   const simulationIntervalRef = useRef(null);
-  const ARRIVAL_THRESHOLD_M = 50; // Increased threshold
+  const lastUpdateTimeRef = useRef(Date.now());
+  const lagCheckIntervalRef = useRef(null);
+  const isTrackingRef = useRef(false); // needed for interval
+  const showSelfieModalRef = useRef(false);
+
+  const ARRIVAL_THRESHOLD_M = 50;
+  
+  const tripCtx = useTripContext();
 
 
   // Check if trip is already in progress and restore state
@@ -108,11 +122,14 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
       const state = JSON.parse(savedTripState);
       if (state.isTracking && trip.status === 'in_progress') {
         setIsTracking(true);
+        isTrackingRef.current = true;
         setTripStarted(true);
         setTripPath(state.tripPath || []);
         setTripStats(state.tripStats || { distance: 0, duration: 0, avgSpeed: 0, maxSpeed: 0 });
         startTimeRef.current = state.startTime || Date.now();
         speedsRef.current = state.speeds || [];
+        setLagCount(state.lagCount || 0);
+        setLagEvents(state.lagEvents || []);
         console.log('Restored trip state from localStorage');
       }
     }
@@ -140,6 +157,10 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
     } else {
       setError('Geolocation is not supported by this browser.');
     }
+
+    return () => {
+      if (lagCheckIntervalRef.current) clearInterval(lagCheckIntervalRef.current);
+    };
   }, [trip.status]);
 
   // Calculate distance between two points
@@ -201,7 +222,9 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
       tripPath,
       tripStats,
       startTime: startTimeRef.current,
-      speeds: speedsRef.current
+      speeds: speedsRef.current,
+      lagCount,
+      lagEvents
     };
     localStorage.setItem(`trip_${trip._id}`, JSON.stringify(state));
   };
@@ -211,31 +234,64 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
     localStorage.removeItem(`trip_${trip._id}`);
   };
 
-  // Connect to Google Fit for walking/cycling trips
-  const connectGoogleFit = async () => {
+  // Connect step tracker for walking/cycling trips (using DeviceMotion / web sensors)
+  const connectStepTracker = async () => {
     try {
       if (trip.mode === 'WALK' || trip.mode === 'CYCLE') {
-        const connection = await googleFitService.connectGoogleFit();
-        if (connection && connection.success) {
-          setGoogleFitConnected(true);
+        const result = await webSensorService.start((stats) => {
+          // Real-time step update callback
+          setFitnessData(stats);
+        });
+        if (result && result.success) {
+          setStepTrackerConnected(true);
           setShowFitnessStats(true);
         }
       }
     } catch (error) {
-      console.error('Failed to connect Google Fit:', error);
+      console.error('Failed to connect step tracker:', error);
     }
   };
 
   // Start position tracking function
   const startPositionTracking = () => {
-    if (!navigator.geolocation || watchIdRef.current) return;
+    if (!navigator.geolocation || watchIdRef.current || tripCtx?.isPaused) return;
 
     console.log('Starting position tracking...');
+    lastUpdateTimeRef.current = Date.now();
+
+    // Start Lag Detection Interval
+    if (lagCheckIntervalRef.current) clearInterval(lagCheckIntervalRef.current);
+    lagCheckIntervalRef.current = setInterval(() => {
+      if (isTrackingRef.current && !tripCtx?.isPaused && !showSelfieModalRef.current) {
+        const now = Date.now();
+        const gap = (now - lastUpdateTimeRef.current) / 1000;
+        
+        // Simulating lag: For real lag detection, gap > 60s without an update means we've lost connection
+        if (gap > 60) {
+          console.log(`GPS Lag detected: ${gap} seconds`);
+          setShowSelfieModal(true);
+          showSelfieModalRef.current = true;
+          
+          setLagCount(prev => prev + 1);
+          setLagEvents(prev => [...prev, {
+            detectedAt: new Date().toISOString(),
+            gapDurationSec: Math.round(gap),
+            selfieProvided: false,
+            selfieUrl: null
+          }]);
+
+          lastUpdateTimeRef.current = Date.now(); // reset so it doesn't trigger repeatedly
+        }
+      }
+    }, 10000); // Check every 10 seconds
+
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const newPos = [position.coords.latitude, position.coords.longitude];
         const speed = position.coords.speed ? Math.max(0, position.coords.speed * 3.6) : 0; // Convert m/s to km/h
         const accuracy = position.coords.accuracy;
+
+        lastUpdateTimeRef.current = Date.now(); // We got an update!
 
         console.log(`Position update: ${newPos[0].toFixed(6)}, ${newPos[1].toFixed(6)}, Speed: ${speed.toFixed(1)} km/h, Accuracy: ${accuracy}m`);
 
@@ -295,15 +351,14 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
           lastPositionRef.current = newPos;
         }
 
-        // Save state periodically
-        if (isTracking) {
+        if (isTracking && !tripCtx?.isPaused) {
           saveTripState();
         }
 
         // Arrival detection: if we're close to route end, auto-complete
         try {
           const split = getRouteSplit(trip.routeGeometry, newPos);
-          if (split && split.distanceFromRouteEnd * 1000 <= ARRIVAL_THRESHOLD_M && isTracking && !arrivalTriggeredRef.current) {
+          if (split && split.distanceFromRouteEnd * 1000 <= ARRIVAL_THRESHOLD_M && isTracking && !tripCtx?.isPaused && !arrivalTriggeredRef.current) {
             arrivalTriggeredRef.current = true;
             console.log('Arrival detected, auto-completing trip...');
             // call stop without awaiting here to avoid blocking geolocation callback
@@ -357,6 +412,8 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
 
     // Move every 1s
     simulationIntervalRef.current = setInterval(() => {
+      if (tripCtx?.isPaused) return;
+
       if (currentIndex >= coords.length - 1) {
         clearInterval(simulationIntervalRef.current);
         setIsSimulating(false);
@@ -415,6 +472,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
       if (trip.status === 'in_progress') {
         console.log('Trip already in progress, just starting tracking...');
         setIsTracking(true);
+        isTrackingRef.current = true;
         setTripStarted(true);
         if (!startTimeRef.current) {
           startTimeRef.current = Date.now();
@@ -427,9 +485,9 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         return;
       }
 
-      // Connect to Google Fit for walking/cycling
+      // Connect step tracker for walking/cycling
       if (trip.mode === 'WALK' || trip.mode === 'CYCLE') {
-        await connectGoogleFit();
+        await connectStepTracker();
       }
 
       // Prevent starting another trip if a different trip is already tracked in localStorage
@@ -450,9 +508,12 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
       }
 
       // Start trip on backend
-      await startTrip(trip._id);
+      await startTrip(trip._id, trip.mode === 'PUBLIC' ? false : true);
+
+      tripCtx?.registerActiveTrip(trip._id, trip.mode);
 
       setIsTracking(true);
+      isTrackingRef.current = true;
       setTripStarted(true);
       startTimeRef.current = Date.now();
 
@@ -495,18 +556,18 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
       }
+      if (lagCheckIntervalRef.current) {
+        clearInterval(lagCheckIntervalRef.current);
+      }
 
-      // Get Google Fit data for walking/cycling trips
-      let googleFitData = null;
-      if (googleFitConnected && (trip.mode === 'WALK' || trip.mode === 'CYCLE')) {
+      // Get step tracker data for walking/cycling trips
+      let sensorData = null;
+      if (stepTrackerConnected && (trip.mode === 'WALK' || trip.mode === 'CYCLE')) {
         try {
-          googleFitData = await googleFitService.getFitnessData(
-            startTimeRef.current,
-            Date.now()
-          );
-          setFitnessData(googleFitData);
+          sensorData = webSensorService.stop();
+          setFitnessData(sensorData);
         } catch (error) {
-          console.error('Failed to get Google Fit data:', error);
+          console.error('Failed to get step tracker data:', error);
         }
       }
 
@@ -518,23 +579,28 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
           maxSpeed: tripStats.maxSpeed,
           speedViolations: speedsRef.current.filter(s => s > 80).length
         },
-        fitnessData: googleFitData,
-        stepsData: googleFitData ? {
-          steps: googleFitData.steps,
-          distance: googleFitData.distance,
-          calories: googleFitData.calories,
-          source: 'google_fit'
-        } : null
+        fitnessData: sensorData,
+        stepsData: sensorData ? {
+          steps: sensorData.steps,
+          distance: sensorData.distance,
+          calories: sensorData.calories,
+          source: sensorData.provider || 'web_sensor'
+        } : null,
+        ecoScorePenalty: tripCtx?.ecoScorePenalty || 0,
+        lagData: {
+          lagCount,
+          lagEvents
+        }
       };
 
       console.log('Completing trip with data:', completionData);
       const result = await completeTrip(trip._id, completionData);
 
       setIsTracking(false);
+      isTrackingRef.current = false;
       setTripStarted(false);
 
-      // Clear saved state
-      clearTripState();
+      tripCtx?.clearActiveTripState();
 
       // reset arrival flag
       arrivalTriggeredRef.current = false;
@@ -555,18 +621,30 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
   // Update duration every second when tracking
   useEffect(() => {
     let interval;
-    if (isTracking && startTimeRef.current) {
+    if (isTracking && startTimeRef.current && !tripCtx?.isPaused) {
       interval = setInterval(() => {
         setTripStats(prev => ({
           ...prev,
-          duration: (Date.now() - startTimeRef.current) / 1000 / 60 // minutes
+          duration: prev.duration + (1 / 60) // add 1 second (in minutes)
         }));
       }, 1000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isTracking]);
+  }, [isTracking, tripCtx?.isPaused]);
+
+  // Handle cross-component pause sync
+  useEffect(() => {
+    if (tripCtx?.isPaused) {
+      if (watchIdRef.current) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    } else if (tripCtx?.isTripActive && !watchIdRef.current) {
+      startPositionTracking();
+    }
+  }, [tripCtx?.isPaused, tripCtx?.isTripActive]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -657,7 +735,7 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
                 Fitness Tracking
               </h3>
               <div className="text-xs px-2 py-1 bg-emerald-500/20 text-emerald-300 rounded-full">
-                Google Fit Connected
+                {fitnessData?.provider === 'web_sensor' ? 'Step Tracker Active' : 'Step Tracker (Simulated)'}
               </div>
             </div>
 
@@ -796,12 +874,12 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
             {followUser ? '📍 Following' : '🗺️ Free View'}
           </button>
 
-          {(trip.mode === 'WALK' || trip.mode === 'CYCLE') && !googleFitConnected && (
+          {(trip.mode === 'WALK' || trip.mode === 'CYCLE') && !stepTrackerConnected && (
             <button
-              onClick={connectGoogleFit}
+              onClick={connectStepTracker}
               className="px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-all duration-300"
             >
-              Connect Google Fit
+              🏃 Start Step Tracker
             </button>
           )}
         </div>
@@ -855,6 +933,32 @@ export default function LiveTripTracker({ trip, onTripComplete }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Selfie Verification Modal */}
+      <SelfieVerification
+        isOpen={showSelfieModal}
+        onClose={() => {
+          setShowSelfieModal(false);
+          showSelfieModalRef.current = false;
+          lastUpdateTimeRef.current = Date.now();
+        }}
+        onSelfieSubmit={(imageUrl) => {
+          // Add the selfie to the most recent lag event
+          setLagEvents(prev => {
+            const updated = [...prev];
+            if (updated.length > 0) {
+              updated[updated.length - 1].selfieProvided = true;
+              updated[updated.length - 1].selfieUrl = imageUrl;
+            }
+            return updated;
+          });
+          setShowSelfieModal(false);
+          showSelfieModalRef.current = false;
+          lastUpdateTimeRef.current = Date.now();
+        }}
+        lagCount={lagCount - 1} // 0-indexed for display internally
+        maxLags={3}
+      />
     </div>
   );
 }

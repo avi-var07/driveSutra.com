@@ -4,7 +4,7 @@ import { changePasswordAPI, updateProfileAPI } from "../services/authService";
 
 const LinkedInIcon = ({ className = "w-5 h-5", ...props }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} {...props}>
-    <path d="M4.98 3.5A2.5 2.5 0 102 6a2.5 2.5 0 002.98-2.5zM3 8.98h4v12H3v-12zm7.5 0h3.84v1.66h.05c.54-1.02 1.86-2.09 3.83-2.09 4.1 0 4.86 2.7 4.86 6.21V21h-4v-5.02c0-1.2-.02-2.75-1.68-2.75-1.68 0-1.94 1.31-1.94 2.66V21h-4v-12z"/>
+    <path d="M4.98 3.5A2.5 2.5 0 102 6a2.5 2.5 0 002.98-2.5zM3 8.98h4v12H3v-12zm7.5 0h3.84v1.66h.05c.54-1.02 1.86-2.09 3.83-2.09 4.1 0 4.86 2.7 4.86 6.21V21h-4v-5.02c0-1.2-.02-2.75-1.68-2.75-1.68 0-1.94 1.31-1.94 2.66V21h-4v-12z" />
   </svg>
 );
 
@@ -66,12 +66,53 @@ function ProfileHeader() {
               <div className="text-xs muted">Eco Score</div>
             </div>
             <div>
-              <div className="text-lg font-extrabold">—</div>
+              <div className="text-lg font-extrabold">{user?.totalTrips ?? 0}</div>
               <div className="text-xs muted">Trips</div>
             </div>
             <div>
-              <div className="text-lg font-extrabold">—</div>
+              <div className="text-lg font-extrabold">{(user?.totalDistance ?? 0).toFixed(1)}</div>
               <div className="text-xs muted">KM Driven</div>
+            </div>
+          </div>
+
+          {/* 🌳 Eco Impact Section */}
+          <div className="w-full mt-6 p-4 rounded-xl glass">
+            <h3 className="text-sm font-semibold mb-3 text-emerald-400">🌳 Your Eco Impact</h3>
+            <div className="grid grid-cols-2 gap-3 text-center">
+              <div className="p-3 bg-emerald-500/10 rounded-lg">
+                <div className="text-xl font-bold text-emerald-400">{user?.treesGrown ?? 0}</div>
+                <div className="text-xs muted">Trees Planted</div>
+              </div>
+              <div className="p-3 bg-blue-500/10 rounded-lg">
+                <div className="text-xl font-bold text-blue-400">{(user?.co2Saved ?? 0).toFixed(1)}kg</div>
+                <div className="text-xs muted">CO₂ Saved</div>
+              </div>
+              <div className="p-3 bg-yellow-500/10 rounded-lg">
+                <div className="text-xl font-bold text-yellow-400">{user?.carbonCredits ?? 0}</div>
+                <div className="text-xs muted">Carbon Credits</div>
+              </div>
+              <div className="p-3 bg-purple-500/10 rounded-lg">
+                <div className="text-xl font-bold text-purple-400">{user?.currentStreak ?? 0}</div>
+                <div className="text-xs muted">Day Streak 🔥</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 📊 Level Progress */}
+          <div className="w-full mt-4 p-4 rounded-xl glass">
+            <h3 className="text-sm font-semibold mb-2 text-blue-400">📊 Level Progress</h3>
+            <div className="flex items-center justify-between text-xs muted mb-1">
+              <span>Level {user?.level ?? 1}</span>
+              <span>{user?.xp ?? 0} / {((user?.level ?? 1) * 1000)} XP</span>
+            </div>
+            <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, ((user?.xp ?? 0) % 1000) / 10)}%` }}
+              />
+            </div>
+            <div className="text-xs muted mt-1 text-center">
+              {((user?.level ?? 1) * 1000) - (user?.xp ?? 0)} XP to next level
             </div>
           </div>
 

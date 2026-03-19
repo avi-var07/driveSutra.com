@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import LiveTripTracker from '../components/trips/LiveTripTracker';
+import TreePlantingAnimation from '../components/animations/TreePlantingAnimation';
+import TicketCountdown from '../components/trips/TicketCountdown';
 import { getTripDetails } from '../services/tripService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { FaArrowLeft, FaTrophy, FaCoins, FaLeaf } from 'react-icons/fa';
@@ -13,6 +15,7 @@ export default function TripTracker() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [completionResult, setCompletionResult] = useState(null);
+  const [showTreeAnimation, setShowTreeAnimation] = useState(false);
 
   useEffect(() => {
     fetchTripDetails();
@@ -37,10 +40,14 @@ export default function TripTracker() {
 
   const handleTripComplete = (result) => {
     setCompletionResult(result);
-    // Auto-redirect to dashboard after 5 seconds
+    // Show tree animation first if they got trees
+    if (result.pendingRewards?.trees > 0 || result.rewards?.trees > 0) {
+        setShowTreeAnimation(true);
+    }
+    // After animation (or immediately), auto-redirect to dashboard
     setTimeout(() => {
       navigate('/dashboard');
-    }, 5000);
+    }, showTreeAnimation ? 8000 : 5000);
   };
 
   if (loading) {
@@ -104,11 +111,38 @@ export default function TripTracker() {
             <div className="text-2xl font-bold text-emerald-400">{trip.mode}</div>
             <div className="text-sm text-slate-400">Transport Mode</div>
           </div>
+
+          {/* Ticket Countdown for booked trips */}
+          {trip.bookedWithUs && trip.ticketExpiresAt && (
+            <div className="mb-4">
+              <TicketCountdown
+                ticketBookedAt={trip.ticketBookedAt}
+                ticketExpiresAt={trip.ticketExpiresAt}
+              />
+            </div>
+          )}
         </div>
+
+        {/* Tree Planting Animation */}
+        <AnimatePresence>
+          {showTreeAnimation && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-8 p-8 rounded-2xl bg-gradient-to-br from-emerald-900/40 to-green-900/40 border border-emerald-500/30"
+            >
+              <TreePlantingAnimation
+                treesPlanted={completionResult?.rewards?.trees || 1}
+                ecoScore={completionResult?.ecoScore || 0}
+                onComplete={() => setShowTreeAnimation(false)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Trip Completion Results */}
         <AnimatePresence>
-          {completionResult && (
+          {completionResult && !showTreeAnimation && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -116,38 +150,66 @@ export default function TripTracker() {
               className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30"
             >
               <div className="text-center mb-6">
-                <div className="text-6xl mb-4">🎉</div>
-                <h2 className="text-3xl font-bold text-white mb-2">Trip Completed!</h2>
-                <p className="text-emerald-300">Great job on your eco-friendly journey!</p>
+                <div className="text-6xl mb-4">
+                  {completionResult.trip?.tripFlagged ? '⚠️' : completionResult.verificationStatus === 'approved' ? '✅' : '⏳'}
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-2">
+                  {completionResult.trip?.tripFlagged ? 'Review Required' : completionResult.verificationStatus === 'approved' ? 'Trip Auto-Verified!' : 'Trip Completed!'}
+                </h2>
+                <p className={completionResult.trip?.tripFlagged ? "text-red-400" : completionResult.verificationStatus === 'approved' ? "text-emerald-300" : "text-amber-300"}>
+                  {completionResult.trip?.tripFlagged 
+                    ? `Trip flagged: ${completionResult.trip.flagReason}`
+                    : completionResult.verificationStatus === 'approved' 
+                    ? 'Great job! Your eco-friendly journey rewards have been credited.'
+                    : 'Pending admin verification. Your estimated rewards will be credited soon.'}
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="text-center p-4 bg-slate-800/30 rounded-xl">
+                <div className="text-center p-4 bg-slate-800/30 rounded-xl relative overflow-hidden">
+                  {completionResult.verificationStatus !== 'approved' && (
+                    <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">EST</div>
+                  )}
                   <FaTrophy className="text-yellow-400 text-3xl mx-auto mb-2" />
                   <div className="text-2xl font-bold text-white">{completionResult.ecoScore}</div>
                   <div className="text-sm text-slate-400">EcoScore</div>
                 </div>
-                
-                <div className="text-center p-4 bg-slate-800/30 rounded-xl">
+
+                <div className="text-center p-4 bg-slate-800/30 rounded-xl relative overflow-hidden">
+                  {completionResult.verificationStatus !== 'approved' && (
+                    <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">EST</div>
+                  )}
                   <div className="text-3xl mb-2">⭐</div>
-                  <div className="text-2xl font-bold text-white">{completionResult.rewards?.xp || 0}</div>
+                  <div className="text-2xl font-bold text-white">
+                    {completionResult.verificationStatus === 'approved' ? (completionResult.rewards?.xp || 0) : (completionResult.pendingRewards?.xp || 0)}
+                  </div>
                   <div className="text-sm text-slate-400">XP Earned</div>
                 </div>
-                
-                <div className="text-center p-4 bg-slate-800/30 rounded-xl">
+
+                <div className="text-center p-4 bg-slate-800/30 rounded-xl relative overflow-hidden">
+                  {completionResult.verificationStatus !== 'approved' && (
+                    <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">EST</div>
+                  )}
                   <FaCoins className="text-yellow-500 text-3xl mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-white">{completionResult.rewards?.carbonCredits || 0}</div>
+                  <div className="text-2xl font-bold text-white">
+                    {completionResult.verificationStatus === 'approved' ? (completionResult.rewards?.carbonCredits || 0) : (completionResult.pendingRewards?.carbonCredits || 0)}
+                  </div>
                   <div className="text-sm text-slate-400">Carbon Credits</div>
                 </div>
-                
-                <div className="text-center p-4 bg-slate-800/30 rounded-xl">
+
+                <div className="text-center p-4 bg-slate-800/30 rounded-xl relative overflow-hidden">
+                  {completionResult.verificationStatus !== 'approved' && (
+                    <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">EST</div>
+                  )}
                   <FaLeaf className="text-green-400 text-3xl mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-white">{completionResult.rewards?.trees || 0}</div>
+                  <div className="text-2xl font-bold text-white">
+                    {completionResult.verificationStatus === 'approved' ? (completionResult.rewards?.trees || 0) : (completionResult.pendingRewards?.trees || 0)}
+                  </div>
                   <div className="text-sm text-slate-400">Trees Grown</div>
                 </div>
               </div>
 
-              {completionResult.newAchievements && completionResult.newAchievements.length > 0 && (
+              {completionResult.verificationStatus === 'approved' && completionResult.newAchievements && completionResult.newAchievements.length > 0 && (
                 <div className="text-center">
                   <h3 className="text-lg font-semibold text-white mb-3">🏆 New Achievements Unlocked!</h3>
                   <div className="flex flex-wrap justify-center gap-2">

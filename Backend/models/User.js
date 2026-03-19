@@ -87,9 +87,7 @@ const userSchema = new mongoose.Schema(
     fraudStrikes: { type: Number, default: 0 },
     
     // Google integration
-    googleId: { type: String },
-    googleFitConnected: { type: Boolean, default: false },
-    googleFitToken: { type: String, default: "" }
+    googleId: { type: String }
   },
   { timestamps: true }
 );

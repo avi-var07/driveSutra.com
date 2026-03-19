@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaRoute, FaClock, FaGasPump, FaLeaf, FaTachometerAlt, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaRoute, FaClock, FaGasPump, FaLeaf, FaTachometerAlt, FaMapMarkerAlt, FaTicketAlt } from 'react-icons/fa';
 import { MdSpeed, MdDirections, MdEco } from 'react-icons/md';
 import PublicTransportDetails from './PublicTransportDetails';
+import BookingModal from './BookingModal';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -134,10 +135,10 @@ function RouteOptionCard({ route, isSelected, onSelect, weather }) {
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
-      className={`cursor-pointer rounded-xl p-4 border-2 transition-all duration-300 ${
+      className={`relative cursor-pointer rounded-2xl p-5 border backdrop-blur-md transition-all duration-300 overflow-hidden ${
         isSelected 
-          ? 'border-emerald-500 bg-emerald-500/10' 
-          : 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
+          ? 'border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.15)]' 
+          : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1 hover:shadow-xl'
       }`}
     >
       <div className="flex items-center justify-between mb-3">
@@ -146,7 +147,7 @@ function RouteOptionCard({ route, isSelected, onSelect, weather }) {
             {route.icon}
           </div>
           <div>
-            <h3 className="font-semibold text-white">{route.mode}</h3>
+            <h3 className="font-semibold text-white">{route.subMode ? `${route.subMode} (${route.mode})` : route.mode}</h3>
             <p className="text-sm text-slate-400">{route.ecoLabel}</p>
           </div>
         </div>
@@ -193,9 +194,15 @@ function RouteOptionCard({ route, isSelected, onSelect, weather }) {
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
-          className="border-t border-slate-600 pt-3 mt-3"
+          className="border-t border-slate-600 pt-3 mt-3 space-y-2"
         >
           <div className="text-xs text-emerald-300">✓ Route selected - Ready to start trip</div>
+          {route.bookable && (
+            <div className="text-xs text-blue-300 flex items-center gap-1">
+              <FaTicketAlt className="text-[10px]" />
+              Eligible for Book With Us — get auto-verified!
+            </div>
+          )}
         </motion.div>
       )}
     </motion.div>
@@ -209,10 +216,12 @@ export default function EnhancedRouteDisplay({
   weather,
   selectedRoute,
   onRouteSelect,
-  onStartTrip 
+  onStartTrip,
+  onBookingConfirmed
 }) {
   const [mapCenter, setMapCenter] = useState(null);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
+  const [showBookingModal, setShowBookingModal] = useState(false);
   
   useEffect(() => {
     if (startLocation && endLocation) {
@@ -372,11 +381,31 @@ export default function EnhancedRouteDisplay({
         </div>
       )}
       
+      {/* Book With Us Button — for bookable modes */}
+      {currentRoute && currentRoute.bookable && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex justify-center"
+        >
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowBookingModal(true)}
+            className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300"
+          >
+            <FaTicketAlt className="text-xl" />
+            🎫 Book With Us — Auto Verify & Get Rewards
+          </motion.button>
+        </motion.div>
+      )}
+      
       {/* Public Transport Details - Show when PUBLIC mode is selected */}
       {currentRoute && currentRoute.mode === 'PUBLIC' && startLocation && endLocation && (
         <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-6">
           <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            🚇 Public Transport Options
+            {currentRoute.subMode === 'METRO' ? '🚇' : currentRoute.subMode === 'TRAIN' ? '🚆' : '🚌'} 
+            {currentRoute.subMode || 'Public'} Transport Details
           </h3>
           <PublicTransportDetails 
             startLocation={startLocation}
@@ -384,6 +413,17 @@ export default function EnhancedRouteDisplay({
           />
         </div>
       )}
+
+      {/* Booking Modal */}
+      <BookingModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        route={currentRoute}
+        onBookingConfirmed={(data) => {
+          setShowBookingModal(false);
+          if (onBookingConfirmed) onBookingConfirmed(data);
+        }}
+      />
     </div>
   );
 }

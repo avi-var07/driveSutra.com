@@ -40,6 +40,7 @@ export default function NewTripForm() {
   const [success, setSuccess] = useState('')
   const [savedTrip, setSavedTrip] = useState(null)
   const [activeLocationPicker, setActiveLocationPicker] = useState(null)
+  const [bookingData, setBookingData] = useState(null) // { bookingRef, subMode }
 
   const handleGetRouteOptions = async () => {
     setError('')
@@ -97,7 +98,11 @@ export default function NewTripForm() {
         mode: selectedOption.mode,
         distanceKm: selectedOption.distanceKm,
         etaMinutes: selectedOption.durationMinutes,
-        routeGeometry: selectedOption.geometry
+        routeGeometry: selectedOption.geometry,
+        // Booking data
+        bookedWithUs: !!bookingData,
+        bookingRef: bookingData?.bookingRef || '',
+        subMode: selectedOption.subMode || ''
       }
       
       const res = await createTrip(payload)
@@ -326,6 +331,10 @@ export default function NewTripForm() {
                   weather={weatherData}
                   selectedRoute={selectedOption}
                   onRouteSelect={handleSelectOption}
+                  onBookingConfirmed={(data) => {
+                    setBookingData(data)
+                    setSuccess(`✅ Booking confirmed! Reference: ${data.bookingRef}. Your trip will be auto-verified.`)
+                  }}
                 />
               </motion.div>
             )}

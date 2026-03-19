@@ -15,6 +15,7 @@ import treePlantingRoutes from "./routes/treePlantingRoutes.js";
 import publicTransportRoutes from "./routes/publicTransportRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import partnerRoutes from "./routes/partnerRoutes.js";
+import donationRoutes from "./routes/donationRoutes.js";
 
 import { initializeAchievements } from "./controllers/achievementController.js";
 import { initializeChallenges } from "./utils/initializeChallenges.js";
@@ -56,10 +57,8 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
 /* ---------- Routes ---------- */
+
 app.use("/api/auth", authRoutes);
 app.use("/api/trips", tripRoutes);
 app.use("/api/users", userRoutes);
@@ -71,6 +70,7 @@ app.use("/api/trees", treePlantingRoutes);
 app.use("/api/public-transport", publicTransportRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/partners", partnerRoutes);
+app.use("/api/donations", donationRoutes);
 
 /* ---------- Health ---------- */
 app.get("/", (req, res) => {

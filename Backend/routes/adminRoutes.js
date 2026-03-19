@@ -6,7 +6,8 @@ import {
   getPendingTrips,
   approveTripVerification,
   rejectTripVerification,
-  getAdminDashboard
+  getAdminDashboard,
+  getAllUsers
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -20,5 +21,6 @@ router.get('/verifications/pending', protectAdmin, getPendingVerifications);
 router.get('/trips/pending', protectAdmin, getPendingTrips);
 router.post('/trips/:tripId/approve', protectAdmin, approveTripVerification);
 router.post('/trips/:tripId/reject', protectAdmin, rejectTripVerification);
+router.get('/users', protectAdmin, getAllUsers);
 
 export default router;

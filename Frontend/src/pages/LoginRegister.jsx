@@ -21,7 +21,7 @@ export default function LoginRegister() {
           {/* Title + Subtitle */}
           <div className="text-center mb-10">
             <h1 className="text-4xl sm:text-5xl font-black bg-gradient-to-r from-emerald-400 to-sky-400 bg-clip-text text-transparent drop-shadow-sm">
-              DriveSutraGo
+              driveSutraGo
             </h1>
             <p className="text-slate-400 mt-3 text-base sm:text-lg">
               {isLogin ? "Welcome back, eco warrior 🌱" : "Join the green revolution 💚"}

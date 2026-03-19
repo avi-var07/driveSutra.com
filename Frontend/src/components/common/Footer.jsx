@@ -19,7 +19,7 @@ export default function Footer() {
                 <FaLeaf className="text-white text-xl" />
               </div>
                 <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-                driveSutraGo.com
+                driveSutraGo
               </span>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed">
@@ -53,10 +53,6 @@ export default function Footer() {
             <div className="space-y-2">
               <FooterLink to="/about">About Us</FooterLink>
               <FooterLink to="/contact">Contact</FooterLink>
-              <FooterLink to="/privacy">Privacy Policy</FooterLink>
-              <FooterLink to="/terms">Terms of Service</FooterLink>
-              <FooterLink to="/faq">FAQ</FooterLink>
-              <FooterLink to="/blog">Blog</FooterLink>
             </div>
           </div>
 
@@ -66,7 +62,7 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-slate-400">
                 <FaEnvelope className="text-emerald-400" />
-                <span className="text-sm">support@driveSutraGo.com</span>
+                <span className="text-sm">support@driveSutraGo</span>
               </div>
               <div className="flex items-center gap-3 text-slate-400">
                 <FaPhone className="text-emerald-400" />
@@ -101,17 +97,14 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-slate-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-slate-400 text-sm text-center md:text-left">
-            © {currentYear} driveSutraGo.com All rights reserved. Made with 💚 for a sustainable future.
+            © {currentYear} driveSutraGo All rights reserved. Made with 💚 for a sustainable future.
           </div>
           <div className="flex items-center gap-6 text-sm">
-            <Link to="/privacy" className="text-slate-400 hover:text-emerald-400 transition-colors">
-              Privacy
+            <Link to="/about" className="text-slate-400 hover:text-emerald-400 transition-colors">
+              About
             </Link>
-            <Link to="/terms" className="text-slate-400 hover:text-emerald-400 transition-colors">
-              Terms
-            </Link>
-            <Link to="/cookies" className="text-slate-400 hover:text-emerald-400 transition-colors">
-              Cookies
+            <Link to="/contact" className="text-slate-400 hover:text-emerald-400 transition-colors">
+              Contact
             </Link>
           </div>
         </div>
@@ -139,12 +132,14 @@ function SocialLink({ href, icon: Icon }) {
 /* Footer Link Component */
 function FooterLink({ to, children }) {
   return (
-    <Link
-      to={to}
-      className="block text-slate-400 hover:text-emerald-400 transition-colors duration-300 text-sm"
-    >
-      {children}
-    </Link>
+    <motion.div whileHover={{ x: 5 }} transition={{ type: 'spring', stiffness: 300 }}>
+      <Link
+        to={to}
+        className="block text-slate-400 hover:text-emerald-400 transition-colors duration-300 text-sm"
+      >
+        {children}
+      </Link>
+    </motion.div>
   );
 }
 

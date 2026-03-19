@@ -89,7 +89,7 @@ export default function Home() {
                 {/* Eco Badge */}
                 <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600/15 border border-emerald-500/25 text-emerald-300 text-sm font-medium backdrop-blur-sm">
                   <FaLeaf className="text-base" />
-                  Promote Eco-Friendly Driving Habits
+                  Gamified Eco-Routing Platform
                 </div>
                 
                 {/* Main Headline with Animated Rotation */}
@@ -102,7 +102,7 @@ export default function Home() {
                       transition={{ duration: 0.6, delay: 0.1 }}
                       className="block text-slate-100"
                     >
-                      Drive with
+                      Travel Smart,
                     </motion.div>
                     
                     {/* Animated rotating words */}
@@ -119,16 +119,16 @@ export default function Home() {
                         }}
                       >
                         <span className="block h-[80px] md:h-[90px] lg:h-[100px] bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 bg-clip-text text-transparent leading-[1.15]">
-                          Purpose.
+                          Earn EcoScore.
                         </span>
                         <span className="block h-[80px] md:h-[90px] lg:h-[100px] bg-gradient-to-r from-teal-400 via-emerald-400 to-green-500 bg-clip-text text-transparent leading-[1.15]">
-                          Passion.
+                          Level Up.
                         </span>
                         <span className="block h-[80px] md:h-[90px] lg:h-[100px] bg-gradient-to-r from-green-400 via-emerald-500 to-teal-400 bg-clip-text text-transparent leading-[1.15]">
-                          Impact.
+                          Plant Trees.
                         </span>
                         <span className="block h-[80px] md:h-[90px] lg:h-[100px] bg-gradient-to-r from-emerald-500 via-green-400 to-emerald-400 bg-clip-text text-transparent leading-[1.15]">
-                          Rewards.
+                          Save CO₂.
                         </span>
                       </motion.div>
                     </div>
@@ -140,15 +140,15 @@ export default function Home() {
                       transition={{ duration: 0.6, delay: 0.3 }}
                       className="block text-slate-100 mt-2"
                     >
-                      Grow with Excellence.
+                      Save the Planet.
                     </motion.div>
                   </h1>
                 </div>
                 
                 {/* Description */}
                 <p className="text-lg md:text-xl text-slate-300 max-w-xl leading-relaxed hero-fade-4">
-                  Every sustainable journey nurtures a greener future. Track your trips, reduce emissions, 
-                  and watch your positive impact grow—one eco-friendly choice at a time.
+                  driveSutraGo is your ultimate eco-routing companion. We find you the greenest travel routes, 
+                  verify your trips, and reward your sustainable choices with XP, Carbon Credits, and real-world tree planting.
                 </p>
 
                 {/* CTA Buttons */}
@@ -339,24 +339,24 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <FeatureCard
-                title="Smart Evaluation"
-                desc="AI-powered scoring based on distance, time, efficiency, and environmental impact"
+                title="Smart Eco-Routing"
+                desc="Our intelligent engine suggests the most carbon-efficient transport modes for your specific journey."
                 icon="🧭"
               />
               <FeatureCard
-                title="Mode Recognition"
-                desc="Automatic detection and rewards for eco-friendly transport choices"
-                icon="🚲"
+                title="Live Trip Verification"
+                desc="Real-time GPS tracking and mandatory selfie verification ensures your green trips are authentic."
+                icon="🛡️"
               />
               <FeatureCard
-                title="Gamified Rewards"
-                desc="Earn XP, level up, unlock achievements and grow your virtual forest"
+                title="Gamified Progression"
+                desc="Earn EcoScore, level up from Seedling to Eco Hero, and unlock exclusive community badges."
                 icon="🏆"
               />
               <FeatureCard
-                title="Anti-Cheat System"
-                desc="Fair verification through ticket validation and behavioral analysis"
-                icon="🛡️"
+                title="Real Environmental Impact"
+                desc="Your virtual progress translates to real-world impact. Grow trees as you hit major milestones."
+                icon="🌳"
               />
             </div>
           </div>
@@ -443,11 +443,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Why EcoDrive */}
+        {/* Why driveSutraGo */}
         <section className="py-24 px-6 scroll-animate">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4">Why Choose EcoDrive?</h2>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">Why Choose driveSutraGo?</h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto">
                 Join a community committed to sustainable transportation
               </p>
@@ -483,7 +483,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div className="md:col-span-2">
               <h3 className="text-xl font-bold mb-3 bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-                EcoDrive
+                driveSutraGo
               </h3>
               <p className="text-sm text-slate-400 max-w-md">
                 Making sustainable transportation accessible, rewarding, and fun for everyone.
@@ -509,7 +509,7 @@ export default function Home() {
           </div>
           
           <div className="pt-8 border-t border-emerald-900/30 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-slate-500">© 2025 EcoDrive. All rights reserved.</p>
+            <p className="text-sm text-slate-500">© 2025 driveSutraGo. All rights reserved.</p>
             <div className="flex gap-3">
               <a href="#" className="w-9 h-9 rounded-full bg-emerald-950/30 border border-emerald-800/40 flex items-center justify-center hover:bg-emerald-900/40 hover:border-emerald-600/50 transition">
                 🐦
@@ -767,7 +767,7 @@ function LoadingScreen() {
             transition={{ delay: 1, duration: 0.6 }}
           >
             <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 bg-clip-text text-transparent">
-              driveSutraGo.com
+              driveSutraGo
             </h1>
             <div className="text-emerald-400 mt-2 text-sm tracking-wider flex items-center gap-2 justify-center">
               <motion.span
@@ -1280,7 +1280,7 @@ function AnimatedLogo() {
               filter: 'drop-shadow(0 2px 4px rgba(16, 185, 129, 0.2))'
             }}
           >
-            driveSutraGo.com
+            driveSutraGo
           </motion.h1>
           <motion.div
             animate={{ 

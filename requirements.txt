@@ -1,0 +1,44 @@
+# driveSutraGo API Keys & Environment Requirements
+
+This file outlines the necessary third-party API keys and node modules required to run driveSutraGo locally and in production.
+
+## 🔑 Environment Variables required
+
+### Frontend (`Frontend/.env`)
+- `VITE_API_URL` (e.g., `http://localhost:5000/api` for local or Render URL for production)
+- `VITE_GOOGLE_CLIENT_ID` (Google Cloud Console OAuth 2.0 Client ID)
+- `VITE_GEMINI_API_KEY` (Google AI Studio Gemini API Key for Chatbot Assistant)
+
+### Backend (`Backend/.env`)
+- `PORT` (Usually `5000`)
+- `MONGODB_URI` (MongoDB Atlas Connection String)
+- `JWT_SECRET` (A secure random string for signing JWT tokens)
+- `FRONTEND_URL` (e.g., `http://localhost:5173` for local or Vercel URL for production)
+- `GOOGLE_CLIENT_ID` (Must match the Frontend Google Client ID)
+- `EMAIL_USER` (Nodemailer Gmail Address — for OTP verification)
+- `EMAIL_PASS` (Nodemailer App Password)
+
+## 📦 Major Node Modules / Tech Stack
+
+### Frontend
+- **React.js & Vite**: Core framework and bundler.
+- **Tailwind CSS**: Utility-first styling.
+- **Framer Motion**: Advanced UI spring animations.
+- **Axios**: HTTP requests.
+- **React Router Dom**: Dynamic SPA routing.
+- **Google API / React-Google-Login**: OAuth login.
+
+### Backend
+- **Express.js**: Web server framework.
+- **Mongoose**: MongoDB object modeling.
+- **Bcrypt & JWT**: Authentication and security.
+- **Nodemailer**: Email utility.
+- **Google-Auth-Library**: JWT token verification.
+- **Tesseract.js**: OCR ticket parsing engine.
+
+## 🌐 Free Public APIs (No Auth Required)
+- **OSRM (Open Source Routing Machine)**: Used for calculating driving/walking distances.
+- **Nominatim**: Used for reverse-geocoding coordinates into human-readable city names.
+- **Overpass API**: Used to query OSM data for nearby Metro/Bus stations.
+- **OpenMeteo**: Used to retrieve real-time weather information for trips.
+- **DeviceMotion Web API**: Browser-native accelerometer used to track steps without needing Google Fit.

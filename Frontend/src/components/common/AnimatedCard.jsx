@@ -189,13 +189,43 @@ export function TripCard({ trip, className = '', ...props }) {
       hoverScale={1.03}
       {...props}
     >
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`w-12 h-12 bg-${getModeColor(trip.mode)}-600 rounded-lg flex items-center justify-center text-2xl`}>
-          {getModeIcon(trip.mode)}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-12 h-12 bg-${getModeColor(trip.mode)}-600 rounded-lg flex items-center justify-center text-2xl`}>
+            {getModeIcon(trip.mode)}
+          </div>
+          <div>
+            <h3 className="font-semibold text-white">{trip.mode} Trip</h3>
+            <p className="text-slate-400 text-sm">{trip.date}</p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-semibold text-white">{trip.mode} Trip</h3>
-          <p className="text-slate-400 text-sm">{trip.date}</p>
+        <div className="flex flex-col items-end gap-1">
+          {/* Trip Status Badge */}
+          {trip.status && (
+            <div className={`text-[10px] font-bold px-2 py-1 flex items-center gap-1 rounded-full uppercase tracking-wider ${
+              trip.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+              trip.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse' :
+              trip.status === 'planned' ? (trip.bookedWithUs ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30') :
+              'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+            }`}>
+              {trip.status === 'in_progress' && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_5px_#60A5FA]"></span>}
+              {trip.status === 'completed' ? '✅ Finished' : 
+               trip.status === 'in_progress' ? '📡 Tracking' : 
+               trip.status === 'planned' && trip.bookedWithUs ? '🎫 Booked' : 'Planned'}
+            </div>
+          )}
+
+          {/* Verification Badge */}
+          {trip.verificationStatus && trip.verificationStatus !== 'planned' && trip.verificationStatus !== 'cancelled' && (
+            <div className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${
+              trip.tripFlagged ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+              trip.verificationStatus === 'approved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+              trip.verificationStatus === 'pending' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+              trip.verificationStatus === 'rejected' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : ''
+            }`}>
+              {trip.tripFlagged ? '⚠️ Flagged' : trip.verificationStatus === 'approved' ? '✓ Verified' : trip.verificationStatus}
+            </div>
+          )}
         </div>
       </div>
       

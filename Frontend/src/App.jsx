@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { TripProvider } from "./context/TripContext";
 
 import Home from "./components/common/Home";
 import Navbar from './components/common/Navbar'
@@ -42,6 +43,7 @@ function App() {
   }
 
   return (
+    <TripProvider>
     <div className="w-full min-h-screen relative font-sans bg-black overflow-hidden flex flex-col">
       <Navbar />
       <main className="flex-1">
@@ -103,6 +105,7 @@ function App() {
       </main>
       <Footer />
     </div>
+    </TripProvider>
   );
 }
 

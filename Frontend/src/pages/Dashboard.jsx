@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import StatsCards from '../components/dashboard/StatsCards';
 import LevelProgress from '../components/dashboard/LevelProgress';
 import RecentTrips from '../components/dashboard/RecentTrips';
 import EcoScoreCard from '../components/dashboard/EcoScoreCard';
+import LeaderboardSneakPeek from '../components/dashboard/LeaderboardSneakPeek';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import AnimatedCard, { ActionCard } from '../components/common/AnimatedCard';
 import { getDashboardStats } from '../services/userService';
-import { FaSync } from 'react-icons/fa';
+import { FaSync, FaExclamationCircle, FaFire } from 'react-icons/fa';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showToast, setShowToast] = useState(false);
   const [dashboardData, setDashboardData] = useState({
     stats: {
       totalTrips: 0,
@@ -109,6 +112,15 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [user]);
 
+  // Handle motivational toast
+  useEffect(() => {
+    if (!loading && dashboardData.userData.currentStreak >= 2) {
+      const timer1 = setTimeout(() => setShowToast(true), 1500);
+      const timer2 = setTimeout(() => setShowToast(false), 6500);
+      return () => { clearTimeout(timer1); clearTimeout(timer2); };
+    }
+  }, [loading, dashboardData.userData.currentStreak]);
+
   const handleRefresh = () => {
     fetchDashboardData(true);
   };
@@ -124,7 +136,26 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0d1f1a] via-[#112820] to-[#0a1d16] text-slate-100 antialiased">
+    <div className="min-h-screen bg-gradient-to-br from-[#0d1f1a] via-[#112820] to-[#0a1d16] text-slate-100 antialiased relative overflow-hidden">
+      
+      {/* Motivational Toast Notification */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, y: -20 }}
+            className="absolute top-6 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full px-6 py-3 shadow-[0_0_30px_rgba(245,158,11,0.3)] flex items-center gap-3 border border-orange-400/50"
+          >
+            <FaFire className="text-white text-xl animate-pulse" />
+            <span className="text-white font-bold tracking-wide">
+              {dashboardData.userData.currentStreak} Day Eco-Streak! Keep it up!
+            </span>
+            <button onClick={() => setShowToast(false)} className="ml-2 text-white/70 hover:text-white">✕</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -148,6 +179,16 @@ const Dashboard = () => {
           </button>
         </div>
 
+        {/* Pending Verification Banner */}
+        {dashboardData.recentTrips.some(trip => trip.verificationStatus === 'pending') && (
+          <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-3">
+            <FaExclamationCircle className="text-amber-400 text-xl flex-shrink-0" />
+            <div className="text-sm text-amber-200">
+              <span className="font-semibold">Pending Verification:</span> You have trips waiting for admin approval. Rewards will be credited upon successful verification.
+            </div>
+          </div>
+        )}
+
         {/* Stats Cards */}
         <StatsCards stats={dashboardData.stats} userData={dashboardData.userData} />
 
@@ -165,12 +206,16 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Right Column - Eco Score Card - Takes 1/3 on large screens */}
-          <div className="lg:col-span-1">
+          {/* Right Column - Takes 1/3 on large screens */}
+          <div className="lg:col-span-1 space-y-6">
             <EcoScoreCard 
               stats={dashboardData.stats}
               userData={dashboardData.userData}
               recentTrips={dashboardData.recentTrips}
+            />
+            
+            <LeaderboardSneakPeek 
+              userData={dashboardData.userData} 
             />
           </div>
         </div>

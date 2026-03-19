@@ -73,20 +73,27 @@ const RegisterForm = () => {
   };
 
   const handleSendOTP = async () => {
+    console.log('🔵 Send OTP button clicked');  // DEBUG LOG
+    console.log('📨 Email:', formData.email);           // DEBUG LOG
     if (!validateForm()) return;
 
     setLoading(true);
     setError('');
 
     try {
+      console.log('📤 Sending OTP to:', formData.email);  // DEBUG LOG
       const response = await sendOTP(formData.email);
+      console.log('✅ OTP API response:', response.data?.success ? 'Success' : 'Failed');  // DEBUG LOG
       if (response.data.success) {
+        console.log('✅ OTP sent successfully');
         setOtpSent(true);
         setStep(2);
       } else {
+        console.error('❌ OTP sending failed:', response.data?.message);  // DEBUG LOG
         setError(response.data.message || 'Failed to send OTP');
       }
     } catch (err) {
+      console.error('❌ OTP request error:', err);  // DEBUG LOG
       setError(err.response?.data?.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
@@ -157,7 +164,7 @@ const RegisterForm = () => {
         
         // Simulate success for 2 seconds before redirect
         setTimeout(() => {
-          navigate('/dashboard');
+          window.location.href = '/dashboard';
         }, 2000);
       } else {
         setError(response.data.message || 'Registration failed');

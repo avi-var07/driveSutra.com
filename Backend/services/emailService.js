@@ -23,7 +23,7 @@ const createTransporter = () => {
 export async function sendRewardConfirmationEmail(user, userReward, reward) {
   try {
     console.log('📧 Sending reward email to:', user.email);
-    
+
     const transporter = createTransporter();
     if (!transporter) {
       console.log('📧 Email transporter not available - credentials missing');
@@ -77,11 +77,11 @@ export async function sendRewardConfirmationEmail(user, userReward, reward) {
               <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin: 20px 0;">
                 <h4 style="color: #f59e0b; margin: 0 0 10px 0;">📋 How to Use</h4>
                 <p style="margin: 0; color: #92400e;">${reward.instructions}</p>
-                ${userReward.expiresAt ? `<p style="margin: 10px 0 0 0; color: #dc2626; font-weight: bold;">⏰ Expires: ${new Date(userReward.expiresAt).toLocaleDateString('en-IN', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}</p>` : ''}
+                ${userReward.expiresAt ? `<p style="margin: 10px 0 0 0; color: #dc2626; font-weight: bold;">⏰ Expires: ${new Date(userReward.expiresAt).toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}</p>` : ''}
               </div>
               
               <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
@@ -251,8 +251,56 @@ export async function sendTripCompletionEmail(user, trip, rewards) {
   }
 }
 
+// Send new login notification email
+export async function sendNewLoginEmail(user, deviceInfo = {}) {
+  try {
+    const transporter = createTransporter();
+    if (!transporter) return false;
+
+    const mailOptions = {
+      from: "driveSutraGo <no-reply@drivesutrago.com>",
+      to: user.email,
+      subject: '🔐 New Login to driveSutraGo',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Login Alert</title>
+          <style>body{font-family:Arial,Helvetica,sans-serif;color:#111}</style>
+        </head>
+        <body>
+          <div style="max-width:600px;margin:0 auto;padding:20px;background:#fff;border-radius:8px;">
+            <h2 style="color:#0b84ff;margin:0 0 8px 0">New Login Detected</h2>
+            <p>Hi ${user.firstName},</p>
+            <p>A new login to your driveSutraGo account was detected:</p>
+            <div style="background:#f8fafc;padding:12px;border-radius:8px;margin:12px 0;">
+              <p style="margin:4px 0"><strong>Browser:</strong> ${deviceInfo.browser || 'Unknown'}</p>
+              <p style="margin:4px 0"><strong>OS:</strong> ${deviceInfo.os || 'Unknown'}</p>
+              <p style="margin:4px 0"><strong>Device:</strong> ${deviceInfo.device || 'Unknown'}</p>
+              <p style="margin:4px 0"><strong>Time:</strong> ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+            </div>
+            <p style="color:#6b7280;font-size:13px;">If this wasn't you, please change your password immediately.</p>
+            <div style="margin-top:18px;color:#9ca3af;font-size:12px;">driveSutraGo — Making every journey count.</div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Login notification email sent to ${user.email}`);
+    return true;
+  } catch (err) {
+    console.error('❌ Error sending login email:', err.message || err);
+    return false;
+  }
+}
+
 export default {
   sendRewardConfirmationEmail,
   sendWelcomeEmail,
-  sendTripCompletionEmail
+  sendTripCompletionEmail,
+  sendNewLoginEmail
 };

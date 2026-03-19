@@ -1,5 +1,6 @@
 import api from './api';
 import { mapService } from './mapService';
+import publicTransportService from './publicTransportService';
 
 // Helper to calculate distance
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -14,8 +15,18 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 // Get route options for all transport modes (Client-side implementation)
+// Modes shown are filtered by distance and city type for practical suggestions
 export async function getRouteOptions(startLocation, endLocation) {
   try {
+    // Calculate straight-line distance for mode filtering
+    const straightDist = calculateDistance(
+      startLocation.lat, startLocation.lng,
+      endLocation.lat, endLocation.lng
+    );
+
+    // Detect metro city for transit sub-modes
+    const cityInfo = publicTransportService.detectMetroCity(startLocation.lat, startLocation.lng);
+
     // Parallel fetch for different modes
     const [drivingRoute, cyclingRoute, walkingRoute] = await Promise.allSettled([
       mapService.getRoute(startLocation, endLocation, 'driving'),
@@ -32,7 +43,101 @@ export async function getRouteOptions(startLocation, endLocation) {
       description: 'Sunny'
     };
 
-    // 1. CAR
+    // --- WALK: only for distances ≤ 3 km ---
+    if (walkingRoute.status === 'fulfilled') {
+      const route = walkingRoute.value;
+      const distKm = route.distance / 1000;
+      if (distKm <= 3) {
+        options.push({
+          mode: 'WALK',
+          distanceKm: distKm,
+          durationMinutes: route.duration / 60,
+          ecoLabel: 'Carbon Neutral',
+          estimatedEcoScore: 95,
+          icon: '🚶',
+          geometry: route.geometry,
+          color: '#4CAF50',
+          bookable: false
+        });
+      }
+    }
+
+    // --- CYCLE: only for distances ≤ 15 km ---
+    if (cyclingRoute.status === 'fulfilled') {
+      const route = cyclingRoute.value;
+      const distKm = route.distance / 1000;
+      if (distKm <= 15) {
+        options.push({
+          mode: 'CYCLE',
+          distanceKm: distKm,
+          durationMinutes: route.duration / 60,
+          ecoLabel: 'Zero Emission',
+          estimatedEcoScore: 90,
+          icon: '🚴',
+          geometry: route.geometry,
+          color: '#2196F3',
+          bookable: false
+        });
+      }
+    }
+
+    // --- PUBLIC TRANSPORT: always shown ---
+    if (drivingRoute.status === 'fulfilled') {
+      const driveDist = drivingRoute.value.distance / 1000;
+
+      // If in a metro city + distance is reasonable for metro (<30km), show METRO option
+      if (cityInfo.hasMetro && straightDist <= 30) {
+        options.push({
+          mode: 'PUBLIC',
+          subMode: 'METRO',
+          distanceKm: driveDist * 1.05,
+          durationMinutes: (driveDist / 30) * 60 + 8, // metro average ~30 km/h + wait
+          ecoLabel: 'Metro Rail',
+          estimatedEcoScore: 92,
+          icon: '🚇',
+          geometry: drivingRoute.value.geometry,
+          color: '#1565C0',
+          metroCity: cityInfo.city,
+          metroCityKey: cityInfo.key,
+          bookable: true
+        });
+      }
+
+      // BUS option: always available for distances > 2km
+      if (straightDist > 2) {
+        options.push({
+          mode: 'PUBLIC',
+          subMode: 'BUS',
+          distanceKm: driveDist * 1.15,
+          durationMinutes: (driveDist / 15) * 60 + 12, // bus ~15 km/h + wait
+          ecoLabel: 'City Bus',
+          estimatedEcoScore: 85,
+          icon: '🚌',
+          geometry: drivingRoute.value.geometry,
+          color: '#7B1FA2',
+          bookable: true
+        });
+      }
+    }
+
+    // --- TRAIN: for distances > 50 km ---
+    if (straightDist > 50 && drivingRoute.status === 'fulfilled') {
+      const driveDist = drivingRoute.value.distance / 1000;
+      options.push({
+        mode: 'PUBLIC',
+        subMode: 'TRAIN',
+        distanceKm: driveDist * 0.95, // trains often take more direct routes
+        durationMinutes: (driveDist / 60) * 60 + 30, // train ~60 km/h avg + boarding
+        ecoLabel: 'Railway',
+        estimatedEcoScore: 88,
+        icon: '🚆',
+        geometry: drivingRoute.value.geometry,
+        color: '#E65100',
+        bookable: true
+      });
+    }
+
+    // --- CAR: always available ---
     if (drivingRoute.status === 'fulfilled') {
       const route = drivingRoute.value;
       const distKm = route.distance / 1000;
@@ -52,62 +157,8 @@ export async function getRouteOptions(startLocation, endLocation) {
           ecoTip: 'Maintain steady speed to save fuel'
         },
         geometry: route.geometry,
-        color: '#FF9800'
-      });
-    }
-
-    // 2. CYCLE
-    if (cyclingRoute.status === 'fulfilled') {
-      const route = cyclingRoute.value;
-      const distKm = route.distance / 1000;
-      if (distKm < 20) { // Limit cycling suggestions to 20km
-        options.push({
-          mode: 'CYCLE',
-          distanceKm: distKm,
-          durationMinutes: route.duration / 60,
-          ecoLabel: 'Zero Emission',
-          estimatedEcoScore: 90,
-          icon: '🚴',
-          geometry: route.geometry,
-          color: '#2196F3'
-        });
-      }
-    }
-
-    // 3. WALK
-    if (walkingRoute.status === 'fulfilled') {
-      const route = walkingRoute.value;
-      const distKm = route.distance / 1000;
-      if (distKm < 7) { // Limit walking to 7km
-        options.push({
-          mode: 'WALK',
-          distanceKm: distKm,
-          durationMinutes: route.duration / 60,
-          ecoLabel: 'Carbon Neutral',
-          estimatedEcoScore: 95,
-          icon: '🚶',
-          geometry: route.geometry,
-          color: '#4CAF50'
-        });
-      }
-    }
-
-    // 4. PUBLIC TRANSPORT (Estimated)
-    // We don't have a free global transit routing API easily available without keys.
-    // So we estimate based on driving distance.
-    if (drivingRoute.status === 'fulfilled') {
-      const driveDist = drivingRoute.value.distance / 1000;
-      options.push({
-        mode: 'PUBLIC',
-        distanceKm: driveDist * 1.1, // slightly longer route usually
-        durationMinutes: (driveDist / 20) * 60 + 10, // assumes 20km/h avg speed + wait time
-        ecoLabel: 'Eco-Friendly',
-        estimatedEcoScore: 85,
-        icon: '🚌',
-        // Create a straight line geometry or reuse driving geometry with different style
-        // Reusing driving geometry is better than nothing for viz
-        geometry: drivingRoute.value.geometry,
-        color: '#9C27B0'
+        color: '#FF9800',
+        bookable: false
       });
     }
 
@@ -116,7 +167,8 @@ export async function getRouteOptions(startLocation, endLocation) {
       options,
       weather,
       startLocation,
-      endLocation
+      endLocation,
+      cityInfo
     };
 
   } catch (error) {
@@ -161,6 +213,24 @@ export async function getTripDetails(tripId) {
   return res.data;
 }
 
+// Pause an active trip
+export async function pauseTrip(tripId) {
+  const res = await api.post(`/trips/${tripId}/pause`);
+  return res.data;
+}
+
+// Resume a paused trip
+export async function resumeTrip(tripId) {
+  const res = await api.post(`/trips/${tripId}/resume`);
+  return res.data;
+}
+
+// Cancel a trip
+export async function cancelTrip(tripId) {
+  const res = await api.post(`/trips/${tripId}/cancel`);
+  return res.data;
+}
+
 export const tripService = {
   getRouteOptions,
   createTrip,
@@ -168,7 +238,10 @@ export const tripService = {
   updateTripLocation,
   completeTrip,
   getUserTrips,
-  getTripDetails
+  getTripDetails,
+  pauseTrip,
+  resumeTrip,
+  cancelTrip
 };
 
 export default tripService;

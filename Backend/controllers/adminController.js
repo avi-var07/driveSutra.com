@@ -3,7 +3,7 @@ import Trip from '../models/Trip.js';
 import PublicTransportVerification from '../models/PublicTransportVerification.js';
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
-import { calculateEcoScore } from '../utils/ecoScoreCalculator.js';
+import { calculateEcoScore } from '../services/ecoScoreCalculator.js';
 
 // Admin login
 export async function adminLogin(req, res) {
@@ -21,8 +21,8 @@ export async function adminLogin(req, res) {
 
     // Check if account is locked
     if (admin.isLocked()) {
-      return res.status(423).json({ 
-        message: 'Account locked due to multiple failed attempts. Try again later.' 
+      return res.status(423).json({
+        message: 'Account locked due to multiple failed attempts. Try again later.'
       });
     }
 
@@ -51,11 +51,11 @@ export async function adminLogin(req, res) {
 
     // Generate JWT token
     const token = jwt.sign(
-      { 
-        id: admin._id, 
-        email: admin.email, 
+      {
+        id: admin._id,
+        email: admin.email,
         role: admin.role,
-        isAdmin: true 
+        isAdmin: true
       },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
@@ -120,7 +120,7 @@ export async function getPendingTrips(req, res) {
   try {
     const { page = 1, limit = 20, mode } = req.query;
 
-    const query = { 
+    const query = {
       status: 'completed',
       verificationStatus: 'pending'
     };
@@ -175,9 +175,8 @@ export async function approveTripVerification(req, res) {
     // Adjust EcoScore if provided
     if (adjustedEcoScore && adjustedEcoScore !== trip.ecoScore) {
       trip.ecoScore = adjustedEcoScore;
-      
+
       // Recalculate rewards based on new score
-      const { default: { calculateTripRewards } } = await import('./tripController.js');
       const rewards = calculateTripRewards(adjustedEcoScore, trip.distanceKm, trip.mode);
       trip.xpEarned = rewards.xp;
       trip.carbonCreditsEarned = rewards.carbonCredits;
@@ -187,30 +186,30 @@ export async function approveTripVerification(req, res) {
 
     await trip.save();
 
-    // NOW award rewards to user (this was previously done in completeTrip)
+    // NOW award rewards to user
     user.xp += trip.xpEarned;
     user.carbonCredits += trip.carbonCreditsEarned;
     user.co2Saved += trip.co2Saved;
     user.treesGrown += trip.treesGrown;
     user.totalTrips += 1;
     user.totalDistance += trip.distanceKm;
-    
+
     // Update average EcoScore
     user.ecoScore = Math.round(
       (user.ecoScore * (user.totalTrips - 1) + trip.ecoScore) / user.totalTrips
     );
-    
+
     // Update level based on XP
     const newLevel = Math.floor(user.xp / 1000) + 1;
     if (newLevel > user.level) {
       user.level = newLevel;
     }
-    
+
     // Update streak
     const today = new Date().setHours(0, 0, 0, 0);
     const lastTripDay = user.lastTripDate ? new Date(user.lastTripDate).setHours(0, 0, 0, 0) : 0;
     const daysDiff = Math.floor((today - lastTripDay) / (1000 * 60 * 60 * 24));
-    
+
     if (daysDiff === 1) {
       user.currentStreak += 1;
       if (user.currentStreak > user.longestStreak) {
@@ -219,7 +218,7 @@ export async function approveTripVerification(req, res) {
     } else if (daysDiff > 1) {
       user.currentStreak = 1;
     }
-    
+
     user.lastTripDate = new Date();
     await user.save();
 
@@ -229,13 +228,13 @@ export async function approveTripVerification(req, res) {
 
     // Send completion email
     try {
-      const { sendTripCompletionEmail } = await import('../utils/emailService.js');
+      const { sendTripCompletionEmail } = await import('../services/emailService.js');
       sendTripCompletionEmail(user, trip, {
         xp: trip.xpEarned,
         carbonCredits: trip.carbonCreditsEarned,
         co2Saved: trip.co2Saved
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     return res.json({
       success: true,
@@ -246,20 +245,6 @@ export async function approveTripVerification(req, res) {
 
   } catch (error) {
     console.error('Approve trip error:', error);
-    return res.status(500).json({ message: error.message || 'Server error' });
-  }
-}
-
-    await trip.save();
-
-    return res.json({
-      success: true,
-      message: 'Trip verification approved',
-      trip
-    });
-
-  } catch (error) {
-    console.error('Approve trip verification error:', error);
     return res.status(500).json({ message: error.message || 'Server error' });
   }
 }
@@ -290,7 +275,7 @@ export async function rejectTripVerification(req, res) {
     trip.verification.verifiedAt = new Date();
     trip.verificationStatus = 'rejected';
 
-    // NO rewards awarded (they were never given in the first place)
+    // NO rewards awarded
     trip.xpEarned = 0;
     trip.carbonCreditsEarned = 0;
     trip.co2Saved = 0;
@@ -300,11 +285,11 @@ export async function rejectTripVerification(req, res) {
 
     // Add fraud strike to user
     user.fraudStrikes += 1;
-    
+
     if (user.fraudStrikes >= 3) {
-      user.isVerified = false; // Require re-verification
+      user.isVerified = false;
     }
-    
+
     await user.save();
 
     return res.json({
@@ -319,47 +304,31 @@ export async function rejectTripVerification(req, res) {
     return res.status(500).json({ message: error.message || 'Server error' });
   }
 }
-    }
-
-    await user.save();
-    await trip.save();
-
-    return res.json({
-      success: true,
-      message: 'Trip verification rejected',
-      trip
-    });
-
-  } catch (error) {
-    console.error('Reject trip verification error:', error);
-    return res.status(500).json({ message: error.message || 'Server error' });
-  }
-}
 
 // Get admin dashboard stats
 export async function getAdminDashboard(req, res) {
   try {
     const [
-      pendingVerifications,
+      pendingTripsCount,
       totalTrips,
       totalUsers,
       todayTrips,
       totalCO2Saved,
       totalTreesPlanted
     ] = await Promise.all([
-      PublicTransportVerification.countDocuments({ status: 'pending' }),
+      Trip.countDocuments({ status: 'completed', verificationStatus: 'pending' }),
       Trip.countDocuments({ status: 'completed' }),
       User.countDocuments({}),
-      Trip.countDocuments({ 
+      Trip.countDocuments({
         status: 'completed',
         endTime: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
       }),
       Trip.aggregate([
-        { $match: { status: 'completed' } },
+        { $match: { status: 'completed', verificationStatus: 'approved' } },
         { $group: { _id: null, total: { $sum: '$co2Saved' } } }
       ]),
       Trip.aggregate([
-        { $match: { status: 'completed' } },
+        { $match: { status: 'completed', verificationStatus: 'approved' } },
         { $group: { _id: null, total: { $sum: '$treesGrown' } } }
       ])
     ]);
@@ -370,28 +339,79 @@ export async function getAdminDashboard(req, res) {
       { $group: { _id: '$mode', count: { $sum: 1 } } }
     ]);
 
-    // Recent verifications
-    const recentVerifications = await PublicTransportVerification.find({ status: 'pending' })
-      .populate('user', 'firstName lastName')
-      .sort({ createdAt: -1 })
-      .limit(5);
+    // Recent pending trips
+    const recentPendingTrips = await Trip.find({
+      status: 'completed',
+      verificationStatus: 'pending'
+    })
+      .populate('user', 'firstName lastName email avatar')
+      .sort({ endTime: -1 })
+      .limit(10);
+
+    // Fraud flagged users
+    const flaggedUsers = await User.find({ fraudStrikes: { $gte: 2 } })
+      .select('firstName lastName email fraudStrikes totalTrips')
+      .sort({ fraudStrikes: -1 })
+      .limit(10);
 
     return res.json({
       success: true,
       stats: {
-        pendingVerifications,
+        pendingTripsCount,
         totalTrips,
         totalUsers,
         todayTrips,
         totalCO2Saved: totalCO2Saved[0]?.total || 0,
         totalTreesPlanted: totalTreesPlanted[0]?.total || 0,
         modeDistribution,
-        recentVerifications
+        recentPendingTrips,
+        flaggedUsers
       }
     });
 
   } catch (error) {
     console.error('Get admin dashboard error:', error);
+    return res.status(500).json({ message: error.message || 'Server error' });
+  }
+}
+
+// Get all users (admin view)
+export async function getAllUsers(req, res) {
+  try {
+    const { page = 1, limit = 20, search } = req.query;
+
+    let query = {};
+    if (search) {
+      query = {
+        $or: [
+          { firstName: { $regex: search, $options: 'i' } },
+          { lastName: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } }
+        ]
+      };
+    }
+
+    const users = await User.find(query)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await User.countDocuments(query);
+
+    return res.json({
+      success: true,
+      users,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Get all users error:', error);
     return res.status(500).json({ message: error.message || 'Server error' });
   }
 }
@@ -406,12 +426,12 @@ function calculateTripRewards(ecoScore, distanceKm, mode) {
     'CAR': 1.0,
     'BIKE': 1.1
   };
-  
+
   const xp = Math.round(baseXP * (modeMultiplier[mode] || 1));
   const carbonCredits = Math.round(ecoScore * 0.1 + distanceKm * 0.5);
   const co2Saved = calculateCO2Saved(distanceKm, mode);
   const trees = Math.round(co2Saved / 22);
-  
+
   return { xp, carbonCredits, co2Saved, trees };
 }
 
@@ -424,7 +444,7 @@ function calculateCO2Saved(distanceKm, mode) {
     'CAR': carEmission,
     'BIKE': 0.15
   };
-  
+
   const modeEmission = modeEmissions[mode] || carEmission;
   return Math.max(0, (carEmission - modeEmission) * distanceKm);
 }
@@ -435,5 +455,6 @@ export default {
   getPendingTrips,
   approveTripVerification,
   rejectTripVerification,
-  getAdminDashboard
+  getAdminDashboard,
+  getAllUsers
 };

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaRoute, FaClock, FaLeaf, FaStar, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import AnimatedCard, { TripCard } from '../components/common/AnimatedCard';
+import TicketCountdown from '../components/trips/TicketCountdown';
 import { tripService } from '../services/tripService';
 import { formatDate } from '../utils/formatDate';
 
@@ -129,12 +130,20 @@ export default function Trips() {
                   date: formatDate(trip.createdAt),
                   distance: trip.distanceKm.toFixed(1),
                   ecoScore: trip.ecoScore || 0,
+                  verificationStatus: trip.verificationStatus,
                   rewards: {
                     trees: trip.treesGrown || 0,
                     xp: trip.xpEarned || 0,
                     co2Saved: trip.co2Saved?.toFixed(1) || 0,
                     credits: trip.carbonCreditsEarned || 0
-                  }
+                  },
+                  ticketCountdown: trip.bookedWithUs && trip.ticketExpiresAt ? (
+                    <TicketCountdown
+                      ticketBookedAt={trip.ticketBookedAt}
+                      ticketExpiresAt={trip.ticketExpiresAt}
+                      compact={true}
+                    />
+                  ) : null
                 }}
                 delay={index * 0.1}
                 clickable

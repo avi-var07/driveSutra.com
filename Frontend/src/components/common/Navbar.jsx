@@ -1,22 +1,103 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useCallback } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaLeaf } from "react-icons/fa6";
-import { FaShieldAlt, FaTrophy, FaRoad } from 'react-icons/fa';
-import { motion } from "motion/react";
+import { FaShieldAlt, FaTrophy, FaRoad, FaPause, FaTimes, FaPlay, FaExclamationTriangle } from 'react-icons/fa';
+import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../../context/AuthContext";
+import { useTripContext } from "../../context/TripContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { isAuthenticated, logout, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const tripCtx = useTripContext();
+
+  // Check if current page is the trip tracking page
+  const isOnTripPage = location.pathname.includes('/track');
+
+  // Guarded navigation — intercepts if a trip is active
+  const guardedNavigate = useCallback((to, e) => {
+    if (tripCtx?.isTripActive && !tripCtx?.isPaused && !isOnTripPage) {
+      // Already navigated away, allow it
+      if (e) e.preventDefault();
+      navigate(to);
+      return;
+    }
+    if (tripCtx?.isTripActive && !tripCtx?.isPaused && isOnTripPage) {
+      // On trip page, trying to leave — show guard
+      if (e) e.preventDefault();
+      tripCtx.requestNavigation(to);
+      return;
+    }
+    // No active trip or already paused — allow navigation
+    navigate(to);
+  }, [tripCtx, navigate, isOnTripPage]);
+
+  // Handle nav guard actions
+  const handleContinueTrip = () => {
+    tripCtx?.dismissNavGuard();
+  };
+
+  const handlePauseAndLeave = () => {
+    tripCtx?.pauseTrip();
+    const target = tripCtx?.pendingNavigation;
+    tripCtx?.dismissNavGuard();
+    if (target) navigate(target);
+  };
+
+  const handleCancelTrip = () => {
+    tripCtx?.clearActiveTripState();
+    const target = tripCtx?.pendingNavigation;
+    tripCtx?.dismissNavGuard();
+    if (target) navigate(target);
+  };
 
   return (
     <>
       <header className="sticky top-0 z-50 backdrop-blur bg-emerald-950/75 border-b border-emerald-800/20 shadow-lg shadow-emerald-900/20">
+        {/* Active Trip Banner */}
+        <AnimatePresence>
+          {tripCtx?.isTripActive && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-gradient-to-r from-emerald-600/90 to-teal-600/90 overflow-hidden"
+            >
+              <div className="w-full px-6 py-1.5 flex items-center justify-between text-sm text-white">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${tripCtx.isPaused ? 'bg-yellow-400' : 'bg-green-400'} opacity-75`}></span>
+                    <span className={`relative inline-flex rounded-full h-2 w-2 ${tripCtx.isPaused ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
+                  </span>
+                  <span className="font-medium">
+                    {tripCtx.isPaused ? '⏸️ Trip Paused' : '🚀 Trip In Progress'} — {tripCtx.tripMode}
+                  </span>
+                  {tripCtx.isPaused && (
+                    <span className="text-yellow-200 text-xs">(Resume within 5 min or trip will be cancelled)</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => navigate(`/trip/${tripCtx.activeTripId}/track`)}
+                  className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold transition-all"
+                >
+                  {tripCtx.isPaused ? 'Resume Trip' : 'View Trip'}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="w-full px-6 py-3 flex items-center">
           {/* Left Corner - Logo */}
           <div className="flex items-center gap-3">
-            <Link to="/" className="group flex items-center gap-3">
+            <Link to="/" className="group flex items-center gap-3" onClick={(e) => {
+              if (tripCtx?.isTripActive && isOnTripPage) {
+                e.preventDefault();
+                tripCtx.requestNavigation('/');
+              }
+            }}>
               <NavbarLogo />
             </Link>
           </div>
@@ -24,18 +105,18 @@ export default function Navbar() {
           {/* Left Side - Dashboard (when authenticated) */}
           {isAuthenticated && (
             <div className="hidden md:flex ml-8">
-              <NavLink to="/dashboard">Dashboard</NavLink>
+              <GuardedNavLink to="/dashboard" guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>Dashboard</GuardedNavLink>
             </div>
           )}
 
           {/* Center Navigation - Spread across available space */}
           <nav className="hidden md:flex items-center justify-center flex-1 gap-8 mx-8">
-            <NavLink to="/rewards">Rewards</NavLink>
-            <NavLink to="/challenges">Challenges</NavLink>
-            <NavLink to="/achievements">Achievements</NavLink>
-            <NavLink to="/forest">Forest</NavLink>
-            <NavLink to="/about">About</NavLink>
-            <NavLink to="/contact">Contact</NavLink>
+            <GuardedNavLink to="/rewards" guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>Rewards</GuardedNavLink>
+            <GuardedNavLink to="/challenges" guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>Challenges</GuardedNavLink>
+            <GuardedNavLink to="/achievements" guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>Achievements</GuardedNavLink>
+            <GuardedNavLink to="/forest" guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>Forest</GuardedNavLink>
+            <GuardedNavLink to="/about" guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>About</GuardedNavLink>
+            <GuardedNavLink to="/contact" guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>Contact</GuardedNavLink>
           </nav>
 
           {/* Right Corner - User Actions */}
@@ -56,6 +137,12 @@ export default function Navbar() {
                 <Link 
                   to="/profile" 
                   className="px-4 py-2 rounded-lg text-slate-200 hover:bg-emerald-950/30 hover:text-emerald-300 transition-all duration-300 border border-transparent hover:border-emerald-700/30"
+                  onClick={(e) => {
+                    if (tripCtx?.isTripActive && isOnTripPage) {
+                      e.preventDefault();
+                      tripCtx.requestNavigation('/profile');
+                    }
+                  }}
                 >
                   Profile
                 </Link>
@@ -98,14 +185,14 @@ export default function Navbar() {
             <div className="flex flex-col gap-2 rounded-xl p-4 backdrop-blur-md bg-emerald-950/40 border border-emerald-800/30">
               {isAuthenticated && (
                 <>
-                  <MobileNavLink to="/dashboard" onClick={() => setOpen(false)}>Dashboard</MobileNavLink>
-                  <MobileNavLink to="/rewards" onClick={() => setOpen(false)}>Rewards</MobileNavLink>
-                  <MobileNavLink to="/challenges" onClick={() => setOpen(false)}>Challenges</MobileNavLink>
-                  <MobileNavLink to="/forest" onClick={() => setOpen(false)}>Forest</MobileNavLink>
+                  <MobileNavLink to="/dashboard" onClick={() => { setOpen(false); }} guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>Dashboard</MobileNavLink>
+                  <MobileNavLink to="/rewards" onClick={() => { setOpen(false); }} guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>Rewards</MobileNavLink>
+                  <MobileNavLink to="/challenges" onClick={() => { setOpen(false); }} guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>Challenges</MobileNavLink>
+                  <MobileNavLink to="/forest" onClick={() => { setOpen(false); }} guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>Forest</MobileNavLink>
                 </>
               )}
-              <MobileNavLink to="/about" onClick={() => setOpen(false)}>About</MobileNavLink>
-              <MobileNavLink to="/contact" onClick={() => setOpen(false)}>Contact</MobileNavLink>
+              <MobileNavLink to="/about" onClick={() => { setOpen(false); }} guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>About</MobileNavLink>
+              <MobileNavLink to="/contact" onClick={() => { setOpen(false); }} guardedNavigate={guardedNavigate} tripActive={tripCtx?.isTripActive && isOnTripPage}>Contact</MobileNavLink>
 
               <div className="mt-3 pt-3 border-t border-emerald-800/30 flex flex-col gap-2">
                 {!isAuthenticated ? (
@@ -153,6 +240,76 @@ export default function Navbar() {
         )}
       </header>
 
+      {/* Navigation Guard Modal */}
+      <AnimatePresence>
+        {tripCtx?.showNavGuard && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            onClick={handleContinueTrip}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 20 }}
+              className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-slate-700/50 p-6 w-full max-w-md mx-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Warning Icon */}
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center">
+                  <FaExclamationTriangle className="text-3xl text-amber-400" />
+                </div>
+              </div>
+
+              <h3 className="text-xl font-bold text-white text-center mb-2">Trip In Progress!</h3>
+              <p className="text-slate-300 text-center text-sm mb-1">
+                Do you want to <span className="text-amber-400 font-semibold">pause</span> or <span className="text-red-400 font-semibold">end</span> your current trip?
+              </p>
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-6">
+                <p className="text-amber-300 text-xs text-center font-medium">
+                  ⚠️ Your ecoScore will be reduced by <span className="font-bold text-amber-200">50 points</span> if you pause!
+                  {tripCtx?.pauseCount > 0 && (
+                    <span className="block mt-1">Current penalty: <span className="text-red-400 font-bold">-{tripCtx.ecoScorePenalty}</span> points ({tripCtx.pauseCount} pause{tripCtx.pauseCount > 1 ? 's' : ''})</span>
+                  )}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {/* Continue Trip */}
+                <button
+                  onClick={handleContinueTrip}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-emerald-500/30 transition-all"
+                >
+                  <FaPlay className="text-sm" /> Continue Trip
+                </button>
+
+                {/* Pause Trip */}
+                <button
+                  onClick={handlePauseAndLeave}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-amber-500/20 border border-amber-500/40 text-amber-300 font-semibold rounded-xl hover:bg-amber-500/30 transition-all"
+                >
+                  <FaPause className="text-sm" /> Pause Trip
+                  <span className="text-xs text-amber-400/70 ml-1">(-50 ecoScore, 5 min to resume)</span>
+                </button>
+
+                {/* Cancel Trip */}
+                <button
+                  onClick={handleCancelTrip}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-red-500/20 border border-red-500/40 text-red-300 font-semibold rounded-xl hover:bg-red-500/30 transition-all"
+                >
+                  <FaTimes className="text-sm" /> Cancel Trip
+                  <span className="text-xs text-red-400/70 ml-1">(no rewards)</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Styles */}
       <style>{`
         @keyframes slideDown {
@@ -174,12 +331,22 @@ export default function Navbar() {
   );
 }
 
-/* Desktop Navigation Link Component */
-function NavLink({ to, children }) {
+/* Desktop Navigation Link Component - with trip guard support */
+function GuardedNavLink({ to, children, guardedNavigate, tripActive }) {
   return (
-    <Link
-      to={to}
-      className="group relative px-4 py-2 text-slate-300 font-medium hover:text-emerald-300 transition-colors duration-300"
+    <a
+      href={to}
+      onClick={(e) => {
+        e.preventDefault();
+        if (tripActive && guardedNavigate) {
+          guardedNavigate(to, e);
+        } else {
+          window.location.href !== to && (window.history.pushState(null, '', to), window.dispatchEvent(new PopStateEvent('popstate')));
+          // Use a simple approach: just navigate
+          guardedNavigate ? guardedNavigate(to, e) : null;
+        }
+      }}
+      className="group relative px-4 py-2 text-slate-300 font-medium hover:text-emerald-300 transition-colors duration-300 cursor-pointer"
     >
       <span className="relative z-10">{children}</span>
       {/* Hover background effect */}
@@ -188,23 +355,46 @@ function NavLink({ to, children }) {
       <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-emerald-400 to-teal-400 group-hover:w-3/4 transition-all duration-300"></span>
       {/* Glow effect */}
       <span className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 blur-lg bg-emerald-400/20 transition-opacity duration-300 -z-10"></span>
+    </a>
+  );
+}
+
+/* Keep original NavLink for non-guarded usage */
+function NavLink({ to, children }) {
+  return (
+    <Link
+      to={to}
+      className="group relative px-4 py-2 text-slate-300 font-medium hover:text-emerald-300 transition-colors duration-300"
+    >
+      <span className="relative z-10">{children}</span>
+      <span className="absolute inset-0 rounded-lg bg-emerald-500/0 group-hover:bg-emerald-500/10 transition-all duration-300 scale-90 group-hover:scale-100"></span>
+      <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-emerald-400 to-teal-400 group-hover:w-3/4 transition-all duration-300"></span>
+      <span className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 blur-lg bg-emerald-400/20 transition-opacity duration-300 -z-10"></span>
     </Link>
   );
 }
 
-/* Mobile Navigation Link Component */
-function MobileNavLink({ to, children, onClick }) {
+/* Mobile Navigation Link Component - with trip guard support */
+function MobileNavLink({ to, children, onClick, guardedNavigate, tripActive }) {
   return (
-    <Link
-      to={to}
-      onClick={onClick}
-      className="group relative py-2.5 px-4 rounded-lg text-slate-300 font-medium hover:text-emerald-300 hover:bg-emerald-500/10 transition-all duration-300"
+    <a
+      href={to}
+      onClick={(e) => {
+        e.preventDefault();
+        if (onClick) onClick();
+        if (tripActive && guardedNavigate) {
+          guardedNavigate(to, e);
+        } else {
+          guardedNavigate ? guardedNavigate(to, e) : null;
+        }
+      }}
+      className="group relative py-2.5 px-4 rounded-lg text-slate-300 font-medium hover:text-emerald-300 hover:bg-emerald-500/10 transition-all duration-300 cursor-pointer"
     >
       <span className="relative z-10 flex items-center gap-2">
         <span className="w-0 h-0.5 bg-emerald-400 group-hover:w-2 transition-all duration-300"></span>
         {children}
       </span>
-    </Link>
+    </a>
   );
 }
 
@@ -383,7 +573,7 @@ function NavbarLogo() {
           transition: { duration: 0.2 }
         }}
       >
-        driveSutraGo.com
+        driveSutraGo
       </motion.span>
     </div>
   );

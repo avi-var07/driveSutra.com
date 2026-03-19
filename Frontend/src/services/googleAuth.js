@@ -54,6 +54,7 @@ class GoogleAuth {
 
   // Handle credential response
   handleCredentialResponse(response) {
+    console.log('✅ Google credential received');  // DEBUG LOG
     if (this.pendingResolve) {
       this.pendingResolve(response);
       this.pendingResolve = null;
@@ -62,8 +63,10 @@ class GoogleAuth {
 
   // Sign in with Google
   async signIn() {
+    console.log('🔵 Google signIn() called');  // DEBUG LOG
     try {
       if (!this.isInitialized) {
+        console.log('⚙️ Initializing Google Auth...');  // DEBUG LOG
         const initialized = await this.init();
         if (!initialized) {
           throw new Error('Failed to initialize Google Auth');
@@ -78,6 +81,7 @@ class GoogleAuth {
         setTimeout(() => {
           if (this.pendingResolve) {
             this.pendingResolve = null;
+            console.warn('⏱️ Google sign-in timeout after 30s, showing popup...');  // DEBUG LOG
             reject(new Error('Google sign-in timeout'));
           }
         }, 30000); // 30 second timeout
@@ -85,7 +89,12 @@ class GoogleAuth {
 
       // Show Google One Tap
       window.google.accounts.id.prompt((notification) => {
+        console.log('📱 Prompt notification:', {  // DEBUG LOG
+          isNotDisplayed: notification.isNotDisplayed(),
+          isSkippedMoment: notification.isSkippedMoment()
+        });  // DEBUG LOG
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          console.log('📤 One Tap not available, showing popup...');  // DEBUG LOG
           this.showPopup();
         }
       });
@@ -99,6 +108,7 @@ class GoogleAuth {
 
       // Parse the JWT token
       const userData = this.parseJWT(credentialResponse.credential);
+      console.log('👤 User data from token:', userData?.email);  // DEBUG LOG
       if (!userData) {
         throw new Error('Failed to parse user data');
       }
