@@ -27,10 +27,10 @@ const app = express();
 
 /* ---------- CORS (FIXED PROPERLY) ---------- */
 const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3000",
+  // "http://localhost:5173",
+  // "http://localhost:3000",
   "https://drivesutrago.vercel.app",
-  "https://drivesutra.vercel.app"
+  // "https://drivesutra.vercel.app"
 ];
 
 app.use(cors({
