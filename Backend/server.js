@@ -33,7 +33,7 @@ const allowedOrigins = [
   // "https://drivesutra.vercel.app"
 ];
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     console.log("CORS Origin:", origin);
 
@@ -48,11 +48,14 @@ app.use(cors({
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: "*"
-}));
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 // Handle preflight requests
-app.options("*", cors());
+app.options("*", cors(corsOptions));
 
 /* ---------- DEBUG LOGGER ---------- */
 app.use((req, res, next) => {
